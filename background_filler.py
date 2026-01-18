@@ -20,6 +20,132 @@ class BackgroundFiller:
     def __init__(self, config: Dict = None):
         self.config = config or IMAGE_PROCESSING
     
+    def fill_with_border_average(self, image: np.ndarray, bboxes: List[BoundingBox],
+                                  border_width: int = 2) -> np.ndarray:
+        """
+        Fill bounding box regions with the dominant color just outside each bounding box.
+        
+        Args:
+            image: Input image
+            bboxes: List of bounding boxes to fill
+            border_width: Width of the border region to sample colors from (default: 2 for tighter sampling)
+        
+        Returns:
+            Image with regions filled using dominant border color
+        """
+        if not bboxes:
+            return image.copy()
+        
+        logger.info(f"Filling {len(bboxes)} regions with dominant border colors...")
+        result = image.copy()
+        
+        for bbox in bboxes:
+            dominant_color = self._get_border_dominant_color(image, bbox, border_width)
+            # Fill the bounding box region with the dominant color
+            result[bbox.y:bbox.y2, bbox.x:bbox.x2] = dominant_color
+        
+        if DEBUG.get('save_intermediate_steps', False):
+            save_debug_image(result, 'text_infilled.png', DEBUG.get('output_dir'))
+        
+        return result
+    
+    def _get_border_dominant_color(self, image: np.ndarray, bbox: BoundingBox, 
+                                    border_width: int = 2) -> np.ndarray:
+        """
+        Get the dominant (most common) color of pixels just outside the bounding box.
+        Uses color clustering to find the most frequent color, avoiding color mixing.
+        
+        Args:
+            image: Input image
+            bbox: Bounding box
+            border_width: Width of the border region to sample (smaller = tighter sampling)
+        
+        Returns:
+            Dominant color as numpy array (BGR)
+        """
+        h, w = image.shape[:2]
+        
+        # Define the outer boundary (expanded bbox) - use small border_width for tight sampling
+        outer_x1 = max(0, bbox.x - border_width)
+        outer_y1 = max(0, bbox.y - border_width)
+        outer_x2 = min(w, bbox.x2 + border_width)
+        outer_y2 = min(h, bbox.y2 + border_width)
+        
+        # Collect pixels from the border region (outside bbox but inside outer boundary)
+        border_pixels = []
+        
+        # Top border
+        if bbox.y > outer_y1:
+            top_region = image[outer_y1:bbox.y, outer_x1:outer_x2]
+            if top_region.size > 0:
+                border_pixels.append(top_region.reshape(-1, 3))
+        
+        # Bottom border
+        if bbox.y2 < outer_y2:
+            bottom_region = image[bbox.y2:outer_y2, outer_x1:outer_x2]
+            if bottom_region.size > 0:
+                border_pixels.append(bottom_region.reshape(-1, 3))
+        
+        # Left border (excluding corners already counted)
+        if bbox.x > outer_x1:
+            left_region = image[bbox.y:bbox.y2, outer_x1:bbox.x]
+            if left_region.size > 0:
+                border_pixels.append(left_region.reshape(-1, 3))
+        
+        # Right border (excluding corners already counted)
+        if bbox.x2 < outer_x2:
+            right_region = image[bbox.y:bbox.y2, bbox.x2:outer_x2]
+            if right_region.size > 0:
+                border_pixels.append(right_region.reshape(-1, 3))
+        
+        if not border_pixels:
+            # Fallback: use the median color of the entire image
+            return np.median(image.reshape(-1, 3), axis=0).astype(np.uint8)
+        
+        all_pixels = np.vstack(border_pixels)
+        
+        # Find dominant color using clustering
+        dominant_color = self._find_dominant_color(all_pixels)
+        
+        return dominant_color
+    
+    def _find_dominant_color(self, pixels: np.ndarray, n_clusters: int = 3) -> np.ndarray:
+        """
+        Find the dominant (most frequent) color in a set of pixels using k-means clustering.
+        
+        Args:
+            pixels: Array of pixel colors (N x 3)
+            n_clusters: Number of color clusters to identify
+        
+        Returns:
+            The most common color as numpy array (BGR)
+        """
+        if len(pixels) < n_clusters:
+            # Not enough pixels, just return the mean
+            return np.mean(pixels, axis=0).astype(np.uint8)
+        
+        # Reduce number of clusters if we don't have many unique colors
+        unique_colors = np.unique(pixels, axis=0)
+        n_clusters = min(n_clusters, len(unique_colors))
+        
+        if n_clusters == 1:
+            return unique_colors[0].astype(np.uint8)
+        
+        # Use k-means to find color clusters
+        pixels_float = pixels.astype(np.float32)
+        
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        _, labels, centers = cv2.kmeans(pixels_float, n_clusters, None, criteria, 
+                                         attempts=3, flags=cv2.KMEANS_PP_CENTERS)
+        
+        # Count pixels in each cluster and find the most common one
+        label_counts = np.bincount(labels.flatten(), minlength=n_clusters)
+        dominant_cluster = np.argmax(label_counts)
+        
+        dominant_color = centers[dominant_cluster].astype(np.uint8)
+        
+        return dominant_color
+
     def remove_and_fill(self, image: np.ndarray, bboxes: List[BoundingBox],
                        label_filter: Optional[str] = None) -> np.ndarray:
         """

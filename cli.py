@@ -117,10 +117,13 @@ Examples:
             print(f"{'='*60}")
             print(f"Output file:     {result['output_path']}")
             print(f"\nStatistics:")
-            print(f"  Text elements:  {result['statistics']['text_elements']}")
-            print(f"  Image elements: {result['statistics']['image_elements']}")
-            print(f"  Shape elements: {result['statistics']['shape_elements']}")
-            print(f"  Dimensions:     {result['statistics']['dimensions'][0]}x{result['statistics']['dimensions'][1]}")
+            print(f"  Text elements:       {result['statistics']['text_elements']}")
+            print(f"  Logos:               {result['statistics']['logos']}")
+            print(f"  Containers:          {result['statistics']['containers']}")
+            print(f"  Images (containers): {result['statistics']['images_in_containers']}")
+            print(f"  Images (standalone): {result['statistics']['standalone_images']}")
+            print(f"  Shape elements:      {result['statistics']['shapes']}")
+            print(f"  Dimensions:          {result['statistics']['dimensions'][0]}x{result['statistics']['dimensions'][1]}")
             
             if DEBUG.get('save_intermediate_steps', False):
                 print(f"\nDebug output:    {DEBUG.get('output_dir', './debug_output')}")

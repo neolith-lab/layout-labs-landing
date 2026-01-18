@@ -1,0 +1,43 @@
+# ML Pipeline Requirements
+# Core ML
+torch>=2.0.0
+torchvision>=0.15.0
+
+# SAM 2 - Segment Anything
+sam2>=1.1.0
+
+# CLIP - Classification
+openai-clip
+transformers>=4.30.0
+
+# LaMa - Inpainting  
+# Note: LaMa requires manual installation from https://github.com/advimman/lama
+# We'll use simple-lama-inpainting as an easier alternative
+simple-lama-inpainting
+
+# OCR - Latest version with new API
+paddlepaddle
+paddleocr>=3.0.0
+
+# Image processing
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+scikit-image>=0.21.0
+
+# Vectorization
+svgwrite>=1.4.3
+# potrace  # Python bindings not on PyPI - install separately if needed
+# pypotrace  # Alternative: pip install pypotrace (requires potrace binary)
+
+# Depth estimation (optional, for layer ordering)
+# timm  # For Depth Anything
+
+# Output formats
+svglib
+reportlab
+
+# Utilities
+tqdm
+requests
+huggingface-hub

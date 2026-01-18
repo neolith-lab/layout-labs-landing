@@ -1,20 +1,24 @@
 """
-Main Raster to SVG Converter
-Orchestrates the entire conversion pipeline
+Main Raster to SVG Converter - Updated with proper layering
+Orchestrates the entire conversion pipeline with:
+1. Logo detection (to exclude text in logos)
+2. Container detection (rounded rectangles, cards)
+3. Proper layer separation
 """
 
 import cv2
 import numpy as np
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 import logging
 import os
 from pathlib import Path
 
-from text_extractor import TextExtractor
-from image_detector import ImageDetector
-from shape_detector import ShapeDetector
+from text_extractor import TextExtractor, TextElement
+from container_detector import ContainerDetector, ContainerElement
+from image_detector import ImageDetector, ImageElement
+from shape_detector import ShapeDetector, ShapeElement
 from background_filler import BackgroundFiller
-from svg_generator import SVGGenerator, create_layered_svg
+from svg_generator import SVGGenerator
 from utils import BoundingBox, save_debug_image
 from config import DEBUG
 
@@ -29,18 +33,27 @@ class RasterToSVGConverter:
     """
     Complete pipeline for converting raster infographics to editable SVG
     
-    Pipeline Steps:
-    1. Text OCR with font identification
-    2. Bounding box removal & background filling
-    3. Image bounding box detection
-    4. Image removal and background filling
-    5. Optional conversion of images to SVG
-    6. Shape identification & bounding boxes
-    7. Shape removal & background filling
-    8. Reconstruction of shapes
-    9. Background to SVG
-    10. Layerwise placement
-    11. Final SVG output
+    Pipeline with text-first removal and infilling:
+    
+    Phase 1: Text Detection and Removal
+        1.1 Detect all text (OCR)
+        1.2 Remove text and infill using average border color
+    
+    Phase 2: Detection on Infilled Image
+        2.1 Detect images/photos (on text-removed image)
+        2.2 Detect containers (rounded rectangles, cards)
+        2.3 Detect other shapes
+    
+    Phase 3: Background Generation
+        - Remove remaining elements and generate clean background
+    
+    Phase 4: SVG Generation
+        Layer 1 (Bottom): Background
+        Layer 2: Container shapes (rounded rectangles, cards)
+        Layer 3: Images inside containers
+        Layer 4: Standalone images
+        Layer 5: Decorative shapes
+        Layer 6 (Top): Text
     """
     
     def __init__(self):
@@ -48,6 +61,7 @@ class RasterToSVGConverter:
         
         self.text_extractor = TextExtractor()
         self.image_detector = ImageDetector()
+        self.container_detector = ContainerDetector()
         self.shape_detector = ShapeDetector()
         self.background_filler = BackgroundFiller()
         self.svg_generator = SVGGenerator()
@@ -61,12 +75,12 @@ class RasterToSVGConverter:
     def convert(self, input_path: str, output_path: str = 'output.svg',
                convert_images_to_svg: bool = False) -> Dict:
         """
-        Convert raster infographic to SVG
+        Convert raster infographic to SVG with proper layering
         
         Args:
             input_path: Path to input raster image
             output_path: Path for output SVG file
-            convert_images_to_svg: Whether to convert embedded images to SVG (experimental)
+            convert_images_to_svg: Whether to vectorize embedded images (experimental)
         
         Returns:
             Dictionary with conversion results and statistics
@@ -83,135 +97,228 @@ class RasterToSVGConverter:
         
         # Keep original for reference
         original_image = image.copy()
-        current_image = image.copy()
         
-        # Step 1: Extract text with OCR
+        # ============================================================
+        # PHASE 1: TEXT DETECTION AND REMOVAL (FIRST)
+        # ============================================================
+        
+        # Step 1.1: Detect all text (OCR)
         logger.info("=" * 50)
-        logger.info("STEP 1: Text OCR")
+        logger.info("PHASE 1.1: Text Detection")
         logger.info("=" * 50)
-        text_elements = self.text_extractor.extract_text_elements(current_image)
+        
+        text_elements = self.text_extractor.extract_text_elements(original_image)
         text_bboxes = [elem.bbox for elem in text_elements]
         
-        # Step 2: Remove text and fill background
+        logger.info(f"Text elements detected: {len(text_elements)}")
+        
+        # ============================================================
+        # PHASE 1.4: TEXT REMOVAL AND INFILLING
+        # ============================================================
         logger.info("=" * 50)
-        logger.info("STEP 2: Remove text and fill background")
+        logger.info("PHASE 1.4: Text Removal and Infilling")
         logger.info("=" * 50)
-        current_image = self.background_filler.remove_and_fill(current_image, text_bboxes)
+        
+        # Remove text and fill with average border color
+        # This creates a clean image for subsequent detection steps
+        text_removed_image = self.background_filler.fill_with_border_average(
+            original_image, text_bboxes, border_width=5
+        )
+        
+        logger.info(f"Removed and infilled {len(text_bboxes)} text regions")
         
         if DEBUG.get('save_intermediate_steps', False):
-            save_debug_image(current_image, '02_text_removed.png', DEBUG.get('output_dir'))
+            save_debug_image(text_removed_image, '01_text_removed_infilled.png',
+                           DEBUG.get('output_dir', './debug_output'))
         
-        # Step 3-4: Detect images
+        # ============================================================
+        # PHASE 2: DETECTION ON INFILLED IMAGE
+        # ============================================================
+        
+        # Step 2.1: Detect images/photos on the text-removed image
         logger.info("=" * 50)
-        logger.info("STEP 3-4: Image detection and removal")
+        logger.info("PHASE 2.1: Image Detection (on infilled image)")
         logger.info("=" * 50)
-        image_elements = self.image_detector.detect_images(current_image)
+        
+        image_elements = self.image_detector.detect_images(
+            text_removed_image, 
+            text_bboxes=[]  # Text already removed, no need to exclude
+        )
         image_bboxes = [elem.bbox for elem in image_elements]
         
-        # Store image data before removal
-        for elem in image_elements:
-            elem.image_data = original_image[elem.bbox.y:elem.bbox.y2, 
-                                            elem.bbox.x:elem.bbox.x2].copy()
+        # Step 2.2: Detect containers on the text-removed image
+        logger.info("=" * 50)
+        logger.info("PHASE 2.2: Container Detection (on infilled image)")
+        logger.info("=" * 50)
         
-        # Remove images and fill background
-        current_image = self.background_filler.remove_and_fill(current_image, image_bboxes)
+        containers = self.container_detector.detect_containers(
+            text_removed_image,
+            text_bboxes=[],  # Text already removed
+            image_bboxes=image_bboxes
+        )
+        container_bboxes = [c.bbox for c in containers]
+        
+        # Separate images into those inside containers and outside
+        images_in_containers, images_outside = self.container_detector.get_images_in_containers(
+            containers, image_elements
+        )
+        
+        logger.info(f"Images in containers: {len(images_in_containers)}")
+        logger.info(f"Standalone images: {len(images_outside)}")
+        
+        # Step 2.3: Detect other shapes (excluding containers) on the text-removed image
+        logger.info("=" * 50)
+        logger.info("PHASE 2.3: Shape Detection (on infilled image)")
+        logger.info("=" * 50)
+        
+        # Create combined exclusion list for shape detection
+        exclude_bboxes = image_bboxes + container_bboxes
+        
+        shape_elements = self.shape_detector.detect_shapes(
+            text_removed_image,
+            text_bboxes=exclude_bboxes
+        )
+        
+        # Filter out shapes that are actually containers (avoid duplicates)
+        shape_elements = self._filter_container_shapes(shape_elements, containers)
+        
+        logger.info(f"Decorative shapes detected: {len(shape_elements)}")
+        
+        # ============================================================
+        # PHASE 3: BACKGROUND GENERATION
+        # ============================================================
+        logger.info("=" * 50)
+        logger.info("PHASE 3: Background Generation")
+        logger.info("=" * 50)
+        
+        # Create background by removing remaining foreground elements from text-removed image
+        # Text is already removed, so we only need to remove images, containers, shapes
+        remaining_foreground_bboxes = (
+            image_bboxes + 
+            container_bboxes +
+            [s.bbox for s in shape_elements]
+        )
+        
+        background_image = self.background_filler.remove_and_fill(
+            text_removed_image, remaining_foreground_bboxes
+        )
         
         if DEBUG.get('save_intermediate_steps', False):
-            save_debug_image(current_image, '04_images_removed.png', DEBUG.get('output_dir'))
+            save_debug_image(background_image, 'background_clean.png', 
+                           DEBUG.get('output_dir', './debug_output'))
         
-        # Step 5: Optional image to SVG conversion (placeholder)
-        if convert_images_to_svg:
-            logger.info("=" * 50)
-            logger.info("STEP 5: Converting images to SVG (experimental)")
-            logger.info("=" * 50)
-            # This would require additional vectorization libraries
-            logger.warning("Image to SVG conversion not fully implemented yet")
-        
-        # Step 6-7: Detect shapes
+        # ============================================================
+        # PHASE 4: SVG GENERATION WITH PROPER LAYERS
+        # ============================================================
         logger.info("=" * 50)
-        logger.info("STEP 6-7: Shape detection and removal")
-        logger.info("=" * 50)
-        shape_elements = self.shape_detector.detect_shapes(current_image, 
-                                                          text_bboxes=text_bboxes,
-                                                          image_bboxes=image_bboxes)
-        shape_bboxes = [elem.bbox for elem in shape_elements]
-        
-        # Remove shapes and fill background (this gives us clean background)
-        background_image = self.background_filler.remove_and_fill(current_image, shape_bboxes)
-        
-        if DEBUG.get('save_intermediate_steps', False):
-            save_debug_image(background_image, '07_shapes_removed_background.png', 
-                           DEBUG.get('output_dir'))
-        
-        # Step 8: Shape reconstruction is implicit in shape detection
-        # Shapes are already represented as structured data in shape_elements
-        
-        # Step 9-11: Generate SVG with layers
-        logger.info("=" * 50)
-        logger.info("STEP 9-11: Generate layered SVG")
+        logger.info("PHASE 4: SVG Generation with Layers")
         logger.info("=" * 50)
         
-        elements = {
-            'width': width,
-            'height': height,
-            'background': background_image,
-            'shapes': shape_elements,
-            'images': image_elements,
-            'text': text_elements
-        }
+        # Store image data for elements before generating SVG
+        for elem in images_in_containers + images_outside:
+            elem.image_data = original_image[
+                elem.bbox.y:elem.bbox.y2, 
+                elem.bbox.x:elem.bbox.x2
+            ].copy()
         
-        output_svg_path = self.svg_generator.generate_svg(
+        # Generate SVG with proper layers
+        output_svg_path = self.svg_generator.generate_layered_svg(
             width=width,
             height=height,
             background_image=background_image,
+            containers=containers,
+            images_in_containers=images_in_containers,
+            standalone_images=images_outside,
+            logos=[],
+            shapes=shape_elements,
             text_elements=text_elements,
-            image_elements=image_elements,
-            shape_elements=shape_elements,
             output_path=output_path
         )
         
-        # Compile results
+        # ============================================================
+        # COMPILE RESULTS
+        # ============================================================
         results = {
             'success': True,
             'output_path': output_svg_path,
             'statistics': {
                 'text_elements': len(text_elements),
-                'image_elements': len(image_elements),
-                'shape_elements': len(shape_elements),
+                'logos': 0,
+                'containers': len(containers),
+                'images_in_containers': len(images_in_containers),
+                'standalone_images': len(images_outside),
+                'shapes': len(shape_elements),
                 'dimensions': (width, height)
             },
-            'elements': elements
+            'elements': {
+                'text': text_elements,
+                'logos': [],
+                'containers': containers,
+                'images_in_containers': images_in_containers,
+                'standalone_images': images_outside,
+                'shapes': shape_elements,
+                'background': background_image
+            }
         }
         
         logger.info("=" * 50)
         logger.info("CONVERSION COMPLETE")
         logger.info("=" * 50)
         logger.info(f"Text elements: {len(text_elements)}")
-        logger.info(f"Image elements: {len(image_elements)}")
-        logger.info(f"Shape elements: {len(shape_elements)}")
+        logger.info(f"Containers: {len(containers)}")
+        logger.info(f"Images in containers: {len(images_in_containers)}")
+        logger.info(f"Standalone images: {len(images_outside)}")
+        logger.info(f"Shapes: {len(shape_elements)}")
         logger.info(f"Output saved to: {output_svg_path}")
         
         return results
+    
+    def _bboxes_match(self, bbox1: BoundingBox, bbox2: BoundingBox, tolerance: int = 5) -> bool:
+        """Check if two bounding boxes are essentially the same"""
+        return (
+            abs(bbox1.x - bbox2.x) <= tolerance and
+            abs(bbox1.y - bbox2.y) <= tolerance and
+            abs(bbox1.w - bbox2.w) <= tolerance and
+            abs(bbox1.h - bbox2.h) <= tolerance
+        )
+    
+    def _filter_container_shapes(self, shapes: List[ShapeElement], 
+                                 containers: List[ContainerElement]) -> List[ShapeElement]:
+        """Filter out shapes that overlap significantly with containers"""
+        filtered = []
+        
+        for shape in shapes:
+            is_container = False
+            for container in containers:
+                # Check IoU
+                x1 = max(shape.bbox.x, container.bbox.x)
+                y1 = max(shape.bbox.y, container.bbox.y)
+                x2 = min(shape.bbox.x2, container.bbox.x2)
+                y2 = min(shape.bbox.y2, container.bbox.y2)
+                
+                if x2 > x1 and y2 > y1:
+                    intersection = (x2 - x1) * (y2 - y1)
+                    union = shape.bbox.area + container.bbox.area - intersection
+                    iou = intersection / union
+                    
+                    if iou > 0.5:
+                        is_container = True
+                        break
+            
+            if not is_container:
+                filtered.append(shape)
+        
+        return filtered
     
     def convert_batch(self, input_dir: str, output_dir: str,
                      pattern: str = '*.png') -> Dict:
         """
         Convert multiple images in batch
-        
-        Args:
-            input_dir: Directory containing input images
-            output_dir: Directory for output SVG files
-            pattern: File pattern to match (default: *.png)
-        
-        Returns:
-            Dictionary with batch conversion results
         """
         logger.info(f"Starting batch conversion from {input_dir}")
         
-        # Create output directory
         os.makedirs(output_dir, exist_ok=True)
         
-        # Find all matching files
         input_path = Path(input_dir)
         files = list(input_path.glob(pattern))
         
@@ -276,11 +383,9 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     
-    # Create converter
     converter = RasterToSVGConverter()
     
     if args.batch:
-        # Batch mode
         output_dir = args.output or 'output_svg'
         results = converter.convert_batch(args.input, output_dir, args.pattern)
         print(f"\nBatch conversion results:")
@@ -288,9 +393,8 @@ def main():
         print(f"Successful: {results['successful']}")
         print(f"Failed: {results['failed']}")
     else:
-        # Single file mode
         output_path = args.output or 'output.svg'
-        results = converter.convert(args.input, output_path, 
+        results = converter.convert(args.input, output_path,
                                    convert_images_to_svg=args.convert_images)
         print(f"\nConversion successful!")
         print(f"Output: {results['output_path']}")

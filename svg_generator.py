@@ -17,8 +17,8 @@ from PIL import Image
 from text_extractor import TextElement
 from image_detector import ImageElement
 from shape_detector import ShapeElement, ShapeType
-from utils import rgb_to_hex, BoundingBox
-from config import SVG_OUTPUT
+from utils import rgb_to_hex, BoundingBox, save_debug_image
+from config import SVG_OUTPUT, DEBUG
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +37,19 @@ class SVGGenerator:
                             logos: List = None,
                             shapes: List = None,
                             text_elements: List = None,
-                            output_path: str = 'output.svg') -> str:
+                            output_path: str = 'output.svg',
+                            original_image: np.ndarray = None) -> str:
         """
         Generate complete SVG with proper layering
         
-        Layer Order (bottom to top):
-        1. Background - clean background
-        2. Containers - rounded rectangles, cards
-        3. Images in containers
-        4. Standalone images and logos
-        5. Decorative shapes
-        6. Text
+        Layer Order (bottom to top) - REVERSE of extraction order:
+        1. Background - clean background (extracted last)
+        2. Containers - placed first on top of background (extracted 3rd)
+        3. Images (in containers and standalone) - placed second (extracted 2nd)
+        4. Text - placed last on top (extracted 1st)
+        
+        Extraction order was: Text → Images → Containers → Background
+        Placement order is: Background → Containers → Images → Text
         
         Args:
             width: SVG canvas width
@@ -57,7 +59,7 @@ class SVGGenerator:
             images_in_containers: Images that are inside containers
             standalone_images: Images not in containers
             logos: Detected logo elements
-            shapes: Decorative shapes
+            shapes: Decorative shapes (unused)
             text_elements: Text elements
             output_path: Output SVG file path
         
@@ -79,11 +81,22 @@ class SVGGenerator:
         # Add defs for any reusable elements (like rounded rect clips)
         defs = dwg.defs
         
+        # For debug: we'll build a composite image layer by layer
+        if DEBUG.get('save_intermediate_steps', False):
+            # Start with background as base for debug visualization
+            debug_composite = background_image.copy() if background_image is not None else np.zeros((height, width, 3), dtype=np.uint8)
+        
         # Layer 1: Background
         bg_layer = dwg.g(id='layer_background')
         if background_image is not None:
             self._add_background_layer(dwg, bg_layer, background_image, width, height)
         dwg.add(bg_layer)
+        
+        # Save debug: Layer 1 - Background only
+        if DEBUG.get('save_intermediate_steps', False):
+            logger.info("Saving debug image: Layer 1 - Background")
+            save_debug_image(debug_composite.copy(), '06_layer1_background.png',
+                           DEBUG.get('output_dir', './debug_output'))
         
         # Layer 2: Containers (rounded rectangles, cards)
         container_layer = dwg.g(id='layer_containers')
@@ -91,14 +104,29 @@ class SVGGenerator:
             self._add_container(dwg, container_layer, container, f'container_{i}')
         dwg.add(container_layer)
         
-        # Layer 3: Images inside containers
+        # Save debug: Layer 2 - Background + Containers
+        if DEBUG.get('save_intermediate_steps', False):
+            logger.info("Saving debug image: Layer 2 - Background + Containers")
+            debug_composite = self._overlay_containers_on_image(debug_composite, containers)
+            save_debug_image(debug_composite.copy(), '06_layer2_containers.png',
+                           DEBUG.get('output_dir', './debug_output'))
+        
+        # Layer 3: Images (both in containers and standalone)
+        # These go on top of containers
         images_in_container_layer = dwg.g(id='layer_images_in_containers')
         for i, img_elem in enumerate(images_in_containers):
             self._add_image_element(dwg, images_in_container_layer, img_elem, f'img_container_{i}')
         dwg.add(images_in_container_layer)
         
+        # Save debug: Layer 3 - Background + Containers + Images in containers
+        if DEBUG.get('save_intermediate_steps', False):
+            logger.info("Saving debug image: Layer 3 - + Images in containers")
+            debug_composite = self._overlay_images_on_image(debug_composite, images_in_containers)
+            save_debug_image(debug_composite.copy(), '06_layer3_images_in_containers.png',
+                           DEBUG.get('output_dir', './debug_output'))
+        
         # Layer 4: Standalone images and logos
-        standalone_layer = dwg.g(id='layer_standalone')
+        standalone_layer = dwg.g(id='layer_standalone_images')
         
         # Add standalone images
         for i, img_elem in enumerate(standalone_images):
@@ -110,23 +138,139 @@ class SVGGenerator:
         
         dwg.add(standalone_layer)
         
-        # Layer 5: Decorative shapes
-        shapes_layer = dwg.g(id='layer_shapes')
-        for i, shape in enumerate(shapes):
-            shape_id = f'shape_{i}'
-            self._add_shape_element(dwg, shapes_layer, shape, shape_id)
-        dwg.add(shapes_layer)
+        # Save debug: Layer 4 - + Standalone images
+        if DEBUG.get('save_intermediate_steps', False):
+            logger.info("Saving debug image: Layer 4 - + Standalone images")
+            debug_composite = self._overlay_images_on_image(debug_composite, standalone_images)
+            save_debug_image(debug_composite.copy(), '06_layer4_standalone_images.png',
+                           DEBUG.get('output_dir', './debug_output'))
         
-        # Layer 6: Text
+        # Layer 5: Text (topmost layer)
+        # Text goes on top of everything - extracted first, placed last
         text_layer = dwg.g(id='layer_text')
         self._add_text_layer(dwg, text_layer, text_elements)
         dwg.add(text_layer)
+        
+        # Save debug: Layer 5 - + Text (final composite)
+        if DEBUG.get('save_intermediate_steps', False):
+            logger.info("Saving debug image: Layer 5 - + Text (final)")
+            debug_composite = self._overlay_text_on_image(debug_composite, text_elements)
+            save_debug_image(debug_composite.copy(), '06_layer5_text_final.png',
+                           DEBUG.get('output_dir', './debug_output'))
         
         # Save SVG
         dwg.save()
         logger.info(f"Layered SVG generated successfully: {output_path}")
         
         return output_path
+    
+    def _overlay_containers_on_image(self, image: np.ndarray, containers: List) -> np.ndarray:
+        """Overlay actual container image data on debug image"""
+        result = image.copy()
+        for container in containers:
+            bbox = container.bbox
+            container_data = getattr(container, 'image_data', None)
+            
+            if container_data is not None and container_data.size > 0:
+                # Ensure dimensions match
+                target_h = bbox.y2 - bbox.y
+                target_w = bbox.x2 - bbox.x
+                
+                if container_data.shape[0] != target_h or container_data.shape[1] != target_w:
+                    container_data = cv2.resize(container_data, (target_w, target_h))
+                
+                # Paste container image data at bbox position
+                try:
+                    result[bbox.y:bbox.y2, bbox.x:bbox.x2] = container_data
+                except ValueError:
+                    # Handle edge cases where dimensions don't match exactly
+                    h = min(container_data.shape[0], result.shape[0] - bbox.y)
+                    w = min(container_data.shape[1], result.shape[1] - bbox.x)
+                    result[bbox.y:bbox.y+h, bbox.x:bbox.x+w] = container_data[:h, :w]
+            else:
+                # Fallback: draw rectangle with fill color if no image data
+                fill_color = getattr(container, 'fill_color', '#ffffff')
+                if fill_color.startswith('#'):
+                    r = int(fill_color[1:3], 16)
+                    g = int(fill_color[3:5], 16)
+                    b = int(fill_color[5:7], 16)
+                    bgr_color = (b, g, r)
+                else:
+                    bgr_color = (255, 255, 255)
+                
+                # Draw filled rectangle
+                cv2.rectangle(result, (bbox.x, bbox.y), (bbox.x2, bbox.y2), bgr_color, -1)
+                
+                # Draw border
+                stroke_color = getattr(container, 'stroke_color', '#000000')
+                if stroke_color.startswith('#'):
+                    r = int(stroke_color[1:3], 16)
+                    g = int(stroke_color[3:5], 16)
+                    b = int(stroke_color[5:7], 16)
+                    border_bgr = (b, g, r)
+                else:
+                    border_bgr = (0, 0, 0)
+                cv2.rectangle(result, (bbox.x, bbox.y), (bbox.x2, bbox.y2), border_bgr, 2)
+        
+        return result
+    
+    def _overlay_images_on_image(self, image: np.ndarray, image_elements: List) -> np.ndarray:
+        """Overlay image elements on debug image"""
+        result = image.copy()
+        for img_elem in image_elements:
+            bbox = img_elem.bbox
+            img_data = getattr(img_elem, 'image_data', None)
+            
+            if img_data is not None and img_data.size > 0:
+                # Ensure dimensions match
+                target_h = bbox.y2 - bbox.y
+                target_w = bbox.x2 - bbox.x
+                
+                if img_data.shape[0] != target_h or img_data.shape[1] != target_w:
+                    img_data = cv2.resize(img_data, (target_w, target_h))
+                
+                # Paste image data at bbox position
+                try:
+                    result[bbox.y:bbox.y2, bbox.x:bbox.x2] = img_data
+                except ValueError:
+                    # Handle edge cases where dimensions don't match exactly
+                    h = min(img_data.shape[0], result.shape[0] - bbox.y)
+                    w = min(img_data.shape[1], result.shape[1] - bbox.x)
+                    result[bbox.y:bbox.y+h, bbox.x:bbox.x+w] = img_data[:h, :w]
+            else:
+                # No image data, draw placeholder rectangle
+                cv2.rectangle(result, (bbox.x, bbox.y), (bbox.x2, bbox.y2), (128, 128, 128), -1)
+                cv2.putText(result, "IMG", (bbox.x + 5, bbox.y + 20),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        
+        return result
+    
+    def _overlay_text_on_image(self, image: np.ndarray, text_elements: List) -> np.ndarray:
+        """Overlay text elements on debug image"""
+        result = image.copy()
+        for text_elem in text_elements:
+            bbox = text_elem.bbox
+            text = getattr(text_elem, 'text', '')
+            color = getattr(text_elem, 'color', '#000000')
+            
+            # Convert hex color to BGR
+            if color.startswith('#'):
+                r = int(color[1:3], 16)
+                g = int(color[3:5], 16)
+                b = int(color[5:7], 16)
+                bgr_color = (b, g, r)
+            else:
+                bgr_color = (0, 0, 0)
+            
+            # Draw text (simplified - actual font rendering would be more complex)
+            font_size = getattr(text_elem, 'font_size', 12)
+            scale = font_size / 30.0  # Approximate scaling
+            
+            # Draw text at bbox position
+            cv2.putText(result, text[:50], (bbox.x, bbox.y + bbox.h - 5),
+                       cv2.FONT_HERSHEY_SIMPLEX, scale, bgr_color, 1, cv2.LINE_AA)
+        
+        return result
     
     def _add_container(self, dwg: svgwrite.Drawing, layer: svgwrite.container.Group,
                       container, container_id: str):

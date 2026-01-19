@@ -278,10 +278,20 @@ class RasterToSVGConverter:
         logger.info("=" * 50)
         
         # Store image data for elements before generating SVG
+        # Extract from original image at their bbox positions
         for elem in images_in_containers + images_outside:
             elem.image_data = original_image[
                 elem.bbox.y:elem.bbox.y2, 
                 elem.bbox.x:elem.bbox.x2
+            ].copy()
+        
+        # Store container image data from CLEANED image (after text/images removed from inside)
+        # This gives us containers with clean interiors
+        for container in containers:
+            bbox = container.bbox
+            container.image_data = cleaned_image[
+                bbox.y:bbox.y2,
+                bbox.x:bbox.x2
             ].copy()
         
         # Generate SVG with proper layers (no shapes)
@@ -295,7 +305,8 @@ class RasterToSVGConverter:
             logos=[],
             shapes=[],  # No shape detection
             text_elements=text_elements,
-            output_path=output_path
+            output_path=output_path,
+            original_image=original_image  # Pass original for debug overlays
         )
         
         # ============================================================

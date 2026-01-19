@@ -14,8 +14,18 @@ OCR_CONFIG = {
 IMAGE_PROCESSING = {
     'background_fill_method': 'inpaint_telea',  # or 'inpaint_ns'
     'inpaint_radius': 5,
-    'min_image_size': 100,  # minimum pixels for image detection
+    'min_image_size': 20,  # LOWERED from 30 - catch smaller icons
+    'min_icon_size': 20,   # LOWERED from 30 - detect even smaller icons
+    'max_icon_size': 150,  # NEW: maximum size for line icon detection
     'blur_kernel_size': 5,
+    # Container filtering heuristics - UPDATED thresholds
+    'container_size_threshold': 0.05,  # LOWERED to 0.05 - Images > 5% of total area likely containers
+    'container_min_unique_colors': 1500,  # RAISED to 1500 - containers can have gradients + embedded icons
+    'container_edge_simplicity_threshold': 0.4,  # RAISED from 0.3
+    'container_fill_ratio_threshold': 0.70,  # NEW: 70% uniform fill = likely container
+    'container_score_threshold': 35,  # LOWERED from 50 - stricter filtering
+    # Edge detection thresholds
+    'edge_density_threshold': 15,  # LOWERED from 30 - catch simpler icons
 }
 
 # Shape Detection Settings

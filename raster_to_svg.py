@@ -140,21 +140,40 @@ class RasterToSVGConverter:
         logger.info("PHASE 2.1: Image Detection (on infilled image)")
         logger.info("=" * 50)
         
-        image_elements = self.image_detector.detect_images(
+        # Detect all images, returns (kept_images, filtered_container_like_images)
+        image_elements, filtered_containers = self.image_detector.detect_images(
             text_removed_image, 
             text_bboxes=[]  # Text already removed, no need to exclude
         )
         image_bboxes = [elem.bbox for elem in image_elements]
         
-        # Step 2.2: Detect containers on the text-removed image
+        logger.info(f"Kept {len(image_elements)} images, filtered {len(filtered_containers)} container-like detections")
+        
+        # Step 2.1.5: Remove detected images and infill
         logger.info("=" * 50)
-        logger.info("PHASE 2.2: Container Detection (on infilled image)")
+        logger.info("PHASE 2.1.5: Image Removal and Infilling")
+        logger.info("=" * 50)
+        
+        # Remove images (but NOT the filtered containers) and fill with average border color
+        images_removed_image = self.background_filler.fill_with_border_average(
+            text_removed_image, image_bboxes, border_width=5
+        )
+        
+        logger.info(f"Removed and infilled {len(image_bboxes)} image regions")
+        
+        if DEBUG.get('save_intermediate_steps', False):
+            save_debug_image(images_removed_image, '04_images_removed_infilled.png',
+                           DEBUG.get('output_dir', './debug_output'))
+        
+        # Step 2.2: Detect containers on the image with both text and images removed
+        logger.info("=" * 50)
+        logger.info("PHASE 2.2: Container Detection (on text+images removed)")
         logger.info("=" * 50)
         
         containers = self.container_detector.detect_containers(
-            text_removed_image,
-            text_bboxes=[],  # Text already removed
-            image_bboxes=image_bboxes
+            images_removed_image,
+            text_bboxes=[],  # Already removed
+            image_bboxes=[]  # Already removed
         )
         container_bboxes = [c.bbox for c in containers]
         
@@ -166,16 +185,16 @@ class RasterToSVGConverter:
         logger.info(f"Images in containers: {len(images_in_containers)}")
         logger.info(f"Standalone images: {len(images_outside)}")
         
-        # Step 2.3: Detect other shapes (excluding containers) on the text-removed image
+        # Step 2.3: Detect other shapes (excluding containers) on the images-removed image
         logger.info("=" * 50)
-        logger.info("PHASE 2.3: Shape Detection (on infilled image)")
+        logger.info("PHASE 2.3: Shape Detection (on text+images removed)")
         logger.info("=" * 50)
         
         # Create combined exclusion list for shape detection
-        exclude_bboxes = image_bboxes + container_bboxes
+        exclude_bboxes = container_bboxes
         
         shape_elements = self.shape_detector.detect_shapes(
-            text_removed_image,
+            images_removed_image,
             text_bboxes=exclude_bboxes
         )
         
@@ -191,16 +210,15 @@ class RasterToSVGConverter:
         logger.info("PHASE 3: Background Generation")
         logger.info("=" * 50)
         
-        # Create background by removing remaining foreground elements from text-removed image
-        # Text is already removed, so we only need to remove images, containers, shapes
+        # Create background by removing remaining foreground elements from images-removed image
+        # Text and images are already removed, so we only need to remove containers and shapes
         remaining_foreground_bboxes = (
-            image_bboxes + 
             container_bboxes +
             [s.bbox for s in shape_elements]
         )
         
         background_image = self.background_filler.remove_and_fill(
-            text_removed_image, remaining_foreground_bboxes
+            images_removed_image, remaining_foreground_bboxes
         )
         
         if DEBUG.get('save_intermediate_steps', False):

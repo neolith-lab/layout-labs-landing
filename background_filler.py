@@ -269,3 +269,90 @@ class BackgroundFiller:
         result[y1:y2, x1:x2] = filled_region
         
         return result
+    
+    def clean_container_interiors(self, image: np.ndarray, container_bboxes: List[BoundingBox],
+                                   min_artifact_size: int = 100, 
+                                   thin_threshold: int = 5) -> np.ndarray:
+        """
+        Clean the inside of containers by removing small specs and thin artifacts
+        that may remain after image/text removal.
+        
+        Args:
+            image: Input image (after text and image removal)
+            container_bboxes: List of container bounding boxes to clean
+            min_artifact_size: Minimum area (in pixels) for an artifact to be kept
+                              Smaller artifacts are removed as specs
+            thin_threshold: Maximum thickness for thin artifacts to be removed
+        
+        Returns:
+            Image with cleaned container interiors
+        """
+        if not container_bboxes:
+            return image.copy()
+        
+        logger.info(f"Cleaning interiors of {len(container_bboxes)} containers...")
+        result = image.copy()
+        total_artifacts_removed = 0
+        
+        for bbox in container_bboxes:
+            # Extract the container region
+            region = result[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
+            
+            if region.size == 0:
+                continue
+            
+            # Find the dominant background color of the container
+            dominant_color = self._get_border_dominant_color(result, bbox, border_width=3)
+            
+            # Convert to grayscale for artifact detection
+            gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
+            
+            # Create a mask of pixels that differ significantly from the dominant color
+            # Convert dominant color to grayscale for comparison
+            dominant_gray = int(0.299 * dominant_color[2] + 0.587 * dominant_color[1] + 0.114 * dominant_color[0])
+            
+            # Find pixels that are different from background
+            diff = np.abs(gray.astype(np.int32) - dominant_gray)
+            artifact_mask = (diff > 30).astype(np.uint8) * 255
+            
+            # Find connected components (artifacts)
+            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+                artifact_mask, connectivity=8
+            )
+            
+            # Create mask for artifacts to remove
+            removal_mask = np.zeros_like(artifact_mask)
+            
+            for i in range(1, num_labels):  # Skip background (label 0)
+                area = stats[i, cv2.CC_STAT_AREA]
+                width = stats[i, cv2.CC_STAT_WIDTH]
+                height = stats[i, cv2.CC_STAT_HEIGHT]
+                
+                # Remove if:
+                # 1. Too small (specs)
+                # 2. Too thin (thin lines/artifacts)
+                is_small = area < min_artifact_size
+                is_thin = min(width, height) < thin_threshold
+                
+                if is_small or is_thin:
+                    removal_mask[labels == i] = 255
+                    total_artifacts_removed += 1
+            
+            # Fill removed artifacts with dominant color
+            if np.any(removal_mask):
+                # Dilate the removal mask slightly for better coverage
+                kernel = np.ones((3, 3), np.uint8)
+                removal_mask = cv2.dilate(removal_mask, kernel, iterations=1)
+                
+                # Fill with dominant color
+                region[removal_mask > 0] = dominant_color
+                
+                # Put the cleaned region back
+                result[bbox.y:bbox.y2, bbox.x:bbox.x2] = region
+        
+        logger.info(f"Removed {total_artifacts_removed} small artifacts from containers")
+        
+        if DEBUG.get('save_intermediate_steps', False):
+            save_debug_image(result, '05_containers_cleaned.png', DEBUG.get('output_dir'))
+        
+        return result

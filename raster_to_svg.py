@@ -16,7 +16,6 @@ from pathlib import Path
 from text_extractor import TextExtractor, TextElement
 from container_detector import ContainerDetector, ContainerElement
 from image_detector import ImageDetector, ImageElement
-from shape_detector import ShapeDetector, ShapeElement
 from background_filler import BackgroundFiller
 from svg_generator import SVGGenerator
 from utils import BoundingBox, save_debug_image
@@ -37,23 +36,21 @@ class RasterToSVGConverter:
     
     Phase 1: Text Detection and Removal
         1.1 Detect all text (OCR)
-        1.2 Remove text and infill using average border color
+        1.2 Remove text and infill using dominant border color
     
-    Phase 2: Detection on Infilled Image
-        2.1 Detect images/photos (on text-removed image)
-        2.2 Detect containers (rounded rectangles, cards)
-        2.3 Detect other shapes
+    Phase 2: Detection and Removal on Infilled Image
+        2.1 Detect images/icons (on text-removed image)
+        2.1.5 Remove images and infill
+        2.2 Use filtered containers from image detection
+        2.2.5 Clean container interiors (remove specs/artifacts)
+        2.3 Remove containers and infill background
     
-    Phase 3: Background Generation
-        - Remove remaining elements and generate clean background
-    
-    Phase 4: SVG Generation
+    Phase 3: SVG Generation
         Layer 1 (Bottom): Background
-        Layer 2: Container shapes (rounded rectangles, cards)
+        Layer 2: Container shapes
         Layer 3: Images inside containers
         Layer 4: Standalone images
-        Layer 5: Decorative shapes
-        Layer 6 (Top): Text
+        Layer 5 (Top): Text
     """
     
     def __init__(self):
@@ -62,7 +59,6 @@ class RasterToSVGConverter:
         self.text_extractor = TextExtractor()
         self.image_detector = ImageDetector()
         self.container_detector = ContainerDetector()
-        self.shape_detector = ShapeDetector()
         self.background_filler = BackgroundFiller()
         self.svg_generator = SVGGenerator()
         
@@ -166,17 +162,87 @@ class RasterToSVGConverter:
             save_debug_image(images_removed_image, '04_images_removed_infilled.png',
                            DEBUG.get('output_dir', './debug_output'))
         
-        # Step 2.2: Detect containers on the image with both text and images removed
+        # Step 2.2: Use filtered containers from image detection
         logger.info("=" * 50)
-        logger.info("PHASE 2.2: Container Detection (on text+images removed)")
+        logger.info("PHASE 2.2: Container Processing (from image detection)")
         logger.info("=" * 50)
         
-        containers = self.container_detector.detect_containers(
-            images_removed_image,
-            text_bboxes=[],  # Already removed
-            image_bboxes=[]  # Already removed
-        )
+        # Convert filtered ImageElements to ContainerElements
+        # The filtered_containers are already detected during image detection
+        from container_detector import ContainerElement, ContainerType
+        
+        containers = []
+        for img_elem in filtered_containers:
+            # Create a simple contour from the bounding box
+            bbox = img_elem.bbox
+            contour = np.array([
+                [bbox.x, bbox.y],
+                [bbox.x2, bbox.y],
+                [bbox.x2, bbox.y2],
+                [bbox.x, bbox.y2]
+            ], dtype=np.int32)
+            
+            # Create ContainerElement from ImageElement
+            container = ContainerElement(
+                container_type=ContainerType.RECTANGLE,
+                bbox=bbox,
+                contour=contour,
+                fill_color="#FFFFFF",  # Default white fill
+                stroke_color="#000000",  # Default black stroke
+                stroke_width=1,
+                corner_radius=0  # Will be estimated later if needed
+            )
+            containers.append(container)
+        
         container_bboxes = [c.bbox for c in containers]
+        logger.info(f"Using {len(containers)} containers from image detection filter")
+        
+        # Save debug visualization showing containers on the images-removed image
+        if DEBUG.get('save_intermediate_steps', False):
+            logger.info(f"Creating debug visualization for {len(containers)} containers...")
+            debug_img = images_removed_image.copy()
+            
+            # Add summary text at top
+            summary = f"Containers detected: {len(containers)} (GREEN boxes)"
+            cv2.putText(debug_img, summary, (10, 30),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 3)
+            cv2.putText(debug_img, summary, (10, 30),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 1)
+            
+            # Draw container bounding boxes in GREEN
+            for i, container in enumerate(containers):
+                bbox = container.bbox
+                color = (0, 255, 0)  # GREEN in BGR
+                
+                # Draw bounding box
+                cv2.rectangle(debug_img, (bbox.x, bbox.y), (bbox.x2, bbox.y2), color, 2)
+                
+                # Add label
+                label = f"Container {i+1}: {bbox.w}x{bbox.h}"
+                cv2.rectangle(debug_img, (bbox.x, bbox.y - 25), (bbox.x + 200, bbox.y), color, -1)
+                cv2.putText(debug_img, label, (bbox.x + 2, bbox.y - 8),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            
+            logger.info("Saving container detection debug image...")
+            save_debug_image(debug_img, '04b_containers_detected.png',
+                           DEBUG.get('output_dir', './debug_output'))
+            logger.info("Container detection debug image saved")
+        else:
+            logger.info("Debug saving is disabled - set DEBUG['save_intermediate_steps'] = True to enable")
+        
+        # Step 2.2.5: Clean container interiors - remove specs and thin artifacts
+        logger.info("=" * 50)
+        logger.info("PHASE 2.2.5: Container Interior Cleaning")
+        logger.info("=" * 50)
+        
+        # Clean small specs and thin artifacts left behind after image/text removal
+        cleaned_image = self.background_filler.clean_container_interiors(
+            images_removed_image, container_bboxes,
+            min_artifact_size=100,  # Remove artifacts smaller than 100 pixels
+            thin_threshold=5        # Remove artifacts thinner than 5 pixels
+        )
+        
+        logger.info(f"Cleaned interiors of {len(container_bboxes)} containers")
         
         # Separate images into those inside containers and outside
         images_in_containers, images_outside = self.container_detector.get_images_in_containers(
@@ -186,45 +252,23 @@ class RasterToSVGConverter:
         logger.info(f"Images in containers: {len(images_in_containers)}")
         logger.info(f"Standalone images: {len(images_outside)}")
         
-        # Step 2.3: Detect other shapes (excluding containers) on the images-removed image
+        # Step 2.3: Remove containers and infill background
         logger.info("=" * 50)
-        logger.info("PHASE 2.3: Shape Detection (on text+images removed)")
+        logger.info("PHASE 2.3: Container Removal and Background Infilling")
         logger.info("=" * 50)
         
-        # Create combined exclusion list for shape detection
-        exclude_bboxes = container_bboxes
-        
-        shape_elements = self.shape_detector.detect_shapes(
-            images_removed_image,
-            text_bboxes=exclude_bboxes
+        # Remove containers and fill with dominant border color
+        # Uses the same technique as text and image removal
+        background_image = self.background_filler.fill_with_border_average(
+            cleaned_image, container_bboxes, border_width=5
         )
         
-        # Filter out shapes that are actually containers (avoid duplicates)
-        shape_elements = self._filter_container_shapes(shape_elements, containers)
-        
-        logger.info(f"Decorative shapes detected: {len(shape_elements)}")
-        
-        # ============================================================
-        # PHASE 3: BACKGROUND GENERATION
-        # ============================================================
-        logger.info("=" * 50)
-        logger.info("PHASE 3: Background Generation")
-        logger.info("=" * 50)
-        
-        # Create background by removing remaining foreground elements from images-removed image
-        # Text and images are already removed, so we only need to remove containers and shapes
-        remaining_foreground_bboxes = (
-            container_bboxes +
-            [s.bbox for s in shape_elements]
-        )
-        
-        background_image = self.background_filler.remove_and_fill(
-            images_removed_image, remaining_foreground_bboxes
-        )
+        logger.info(f"Removed and infilled {len(container_bboxes)} container regions")
         
         if DEBUG.get('save_intermediate_steps', False):
-            save_debug_image(background_image, 'background_clean.png', 
+            save_debug_image(background_image, '05_containers_removed_background.png',
                            DEBUG.get('output_dir', './debug_output'))
+
         
         # ============================================================
         # PHASE 4: SVG GENERATION WITH PROPER LAYERS
@@ -240,7 +284,7 @@ class RasterToSVGConverter:
                 elem.bbox.x:elem.bbox.x2
             ].copy()
         
-        # Generate SVG with proper layers
+        # Generate SVG with proper layers (no shapes)
         output_svg_path = self.svg_generator.generate_layered_svg(
             width=width,
             height=height,
@@ -249,7 +293,7 @@ class RasterToSVGConverter:
             images_in_containers=images_in_containers,
             standalone_images=images_outside,
             logos=[],
-            shapes=shape_elements,
+            shapes=[],  # No shape detection
             text_elements=text_elements,
             output_path=output_path
         )
@@ -266,7 +310,7 @@ class RasterToSVGConverter:
                 'containers': len(containers),
                 'images_in_containers': len(images_in_containers),
                 'standalone_images': len(images_outside),
-                'shapes': len(shape_elements),
+                'shapes': 0,  # No shape detection
                 'dimensions': (width, height)
             },
             'elements': {
@@ -275,7 +319,7 @@ class RasterToSVGConverter:
                 'containers': containers,
                 'images_in_containers': images_in_containers,
                 'standalone_images': images_outside,
-                'shapes': shape_elements,
+                'shapes': [],  # No shape detection
                 'background': background_image
             }
         }
@@ -287,7 +331,6 @@ class RasterToSVGConverter:
         logger.info(f"Containers: {len(containers)}")
         logger.info(f"Images in containers: {len(images_in_containers)}")
         logger.info(f"Standalone images: {len(images_outside)}")
-        logger.info(f"Shapes: {len(shape_elements)}")
         logger.info(f"Output saved to: {output_svg_path}")
         
         return results
@@ -300,34 +343,6 @@ class RasterToSVGConverter:
             abs(bbox1.w - bbox2.w) <= tolerance and
             abs(bbox1.h - bbox2.h) <= tolerance
         )
-    
-    def _filter_container_shapes(self, shapes: List[ShapeElement], 
-                                 containers: List[ContainerElement]) -> List[ShapeElement]:
-        """Filter out shapes that overlap significantly with containers"""
-        filtered = []
-        
-        for shape in shapes:
-            is_container = False
-            for container in containers:
-                # Check IoU
-                x1 = max(shape.bbox.x, container.bbox.x)
-                y1 = max(shape.bbox.y, container.bbox.y)
-                x2 = min(shape.bbox.x2, container.bbox.x2)
-                y2 = min(shape.bbox.y2, container.bbox.y2)
-                
-                if x2 > x1 and y2 > y1:
-                    intersection = (x2 - x1) * (y2 - y1)
-                    union = shape.bbox.area + container.bbox.area - intersection
-                    iou = intersection / union
-                    
-                    if iou > 0.5:
-                        is_container = True
-                        break
-            
-            if not is_container:
-                filtered.append(shape)
-        
-        return filtered
     
     def convert_batch(self, input_dir: str, output_dir: str,
                      pattern: str = '*.png') -> Dict:

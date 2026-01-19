@@ -8,13 +8,20 @@ import numpy as np
 import pytesseract
 from typing import List, Dict, Tuple, Optional
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 try:
     import easyocr
     EASYOCR_AVAILABLE = True
 except ImportError:
     EASYOCR_AVAILABLE = False
+
+# Import font classifier
+try:
+    from font_classifier import get_font_classifier, FontPrediction, SUPPORTED_FONTS
+    FONT_CLASSIFIER_AVAILABLE = True
+except ImportError:
+    FONT_CLASSIFIER_AVAILABLE = False
 
 from utils import BoundingBox, save_debug_image
 from config import OCR_CONFIG, DEBUG
@@ -33,6 +40,11 @@ class TextElement:
     font_style: str = 'normal'
     color: str = '#000000'
     confidence: float = 0.0
+    # New fields for enhanced text handling
+    font_confidence: float = 0.0
+    fallback_fonts: List[str] = field(default_factory=lambda: ['Helvetica', 'sans-serif'])
+    line_height: float = 1.2
+    letter_spacing: float = 0.0
     
 
 class TextExtractor:

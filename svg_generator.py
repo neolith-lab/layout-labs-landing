@@ -8,11 +8,20 @@ import cv2
 import svgwrite
 from svgwrite import cm, mm
 import numpy as np
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 import logging
 import base64
 import io
-from PIL import Image
+import re
+import os
+from PIL import Image, ImageDraw, ImageFont
+
+# Optional: for downloading fonts
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
 
 from text_extractor import TextElement
 from image_detector import ImageElement
@@ -28,6 +37,8 @@ class SVGGenerator:
     
     def __init__(self, config: Dict = None):
         self.config = config or SVG_OUTPUT
+        self.logger = logging.getLogger(__name__)
+        self.dwg = None  # Will be set when generating SVG
     
     def generate_layered_svg(self, width: int, height: int,
                             background_image: np.ndarray = None,
@@ -77,6 +88,7 @@ class SVGGenerator:
         
         # Create SVG drawing
         dwg = svgwrite.Drawing(output_path, size=(int(width), int(height)), profile='full')
+        self.dwg = dwg  # Store reference for use in helper methods
         
         # Add defs for any reusable elements (like rounded rect clips)
         defs = dwg.defs
@@ -170,41 +182,188 @@ class SVGGenerator:
     
     def _add_google_fonts(self, dwg: svgwrite.Drawing, text_elements: List[TextElement]):
         """
-        Add Google Fonts to SVG by embedding @font-face declarations
+        Add fonts to SVG with multiple fallback strategies:
         
-        This ensures fonts render correctly even if not installed on the viewer's system
+        1. Primary: Use web-safe font stack with similar appearance
+        2. Alternative: Embed Google Fonts via @import (requires internet)
+        3. Best: Embed font files directly as base64 (fully portable)
+        4. Fallback: Generic font families
         """
         # Collect unique fonts from all text elements
         unique_fonts = set()
         for text_elem in text_elements:
             if text_elem.classified_font:
-                # Clean font name for URL (replace spaces with +)
                 font_name = text_elem.classified_font
                 unique_fonts.add(font_name)
         
         if not unique_fonts:
             return
         
-        logger.info(f"Embedding {len(unique_fonts)} Google Fonts in SVG")
+        logger.info(f"Processing {len(unique_fonts)} fonts for SVG: {unique_fonts}")
         
-        # Build Google Fonts URL
-        # Format: https://fonts.googleapis.com/css2?family=Font+Name:wght@400;700&family=Another+Font
-        font_params = []
+        # Get config options
+        embed_files = self.config.get('embed_font_files', False)
+        font_strategy = self.config.get('font_embedding', 'both')
+        
+        # Option 1: Map Google Fonts to web-safe alternatives
+        font_mapping = self._get_font_fallback_mapping()
+        
+        css_parts = []
+        
+        # If embedding is enabled, try to embed font files directly
+        if embed_files and REQUESTS_AVAILABLE:
+            logger.info("Attempting to embed font files directly...")
+            for font_name in sorted(unique_fonts):
+                embedded_css = self._embed_google_font(font_name)
+                if embedded_css:
+                    css_parts.append(embedded_css)
+                    logger.info(f"  ✓ Embedded: {font_name}")
+                else:
+                    logger.info(f"  ✗ Failed to embed: {font_name} (will use fallback)")
+        
+        # Add Google Fonts import (for when internet is available and embedding failed)
+        if font_strategy in ['google_fonts', 'both']:
+            font_params = []
+            for font_name in sorted(unique_fonts):
+                url_safe_name = font_name.replace(' ', '+')
+                font_params.append(f"family={url_safe_name}:wght@300;400;600;700")
+            
+            if font_params:
+                fonts_url = "https://fonts.googleapis.com/css2?" + "&".join(font_params)
+                css_parts.insert(0, f"@import url('{fonts_url}');")
+        
+        # Add CSS classes for font fallbacks
         for font_name in sorted(unique_fonts):
-            # Replace spaces with +, handle special characters
+            fallback = font_mapping.get(font_name, font_mapping.get('default'))
+            css_parts.append(f"""
+/* Fallback for {font_name} */
+.font-{font_name.lower().replace(' ', '-')} {{
+    font-family: '{font_name}', {fallback};
+}}""")
+        
+        style_content = "\n".join(css_parts)
+        dwg.defs.add(dwg.style(style_content))
+        
+        logger.info(f"Added font CSS (strategy: {font_strategy}, embed_files: {embed_files})")
+    
+    def _get_font_fallback_mapping(self) -> dict:
+        """
+        Map Google Fonts to web-safe fallback font stacks
+        
+        Returns a dict mapping font names to CSS font-family fallback strings
+        """
+        return {
+            # Sans-serif fonts
+            'Roboto': "Arial, Helvetica, sans-serif",
+            'Open Sans': "Arial, Helvetica, sans-serif",
+            'Lato': "Arial, Helvetica, sans-serif",
+            'Montserrat': "'Trebuchet MS', Arial, sans-serif",
+            'Poppins': "Arial, Helvetica, sans-serif",
+            'Inter': "Arial, Helvetica, sans-serif",
+            'Nunito': "Arial, Helvetica, sans-serif",
+            'Raleway': "'Trebuchet MS', Arial, sans-serif",
+            'Ubuntu': "Arial, Helvetica, sans-serif",
+            'Oswald': "'Arial Narrow', Arial, sans-serif",
+            'Source Sans Pro': "Arial, Helvetica, sans-serif",
+            'Bebas Neue': "'Arial Narrow', Impact, sans-serif",
+            
+            # Serif fonts
+            'Playfair Display': "Georgia, 'Times New Roman', serif",
+            'Merriweather': "Georgia, 'Times New Roman', serif",
+            'Lora': "Georgia, 'Times New Roman', serif",
+            'PT Serif': "Georgia, 'Times New Roman', serif",
+            'Libre Baskerville': "'Book Antiqua', Georgia, serif",
+            
+            # Display/decorative fonts
+            'Pacifico': "'Brush Script MT', cursive",
+            'Dancing Script': "'Brush Script MT', cursive",
+            'Lobster': "'Brush Script MT', cursive",
+            
+            # Monospace fonts
+            'Roboto Mono': "'Courier New', Courier, monospace",
+            'Source Code Pro': "'Courier New', Courier, monospace",
+            'Fira Code': "'Courier New', Courier, monospace",
+            
+            # Default fallback
+            'default': "Arial, Helvetica, sans-serif"
+        }
+    
+    def _embed_google_font(self, font_name: str) -> str:
+        """
+        Download a Google Font and return it as a base64-encoded @font-face CSS
+        
+        This embeds the actual font file in the SVG for full portability.
+        Requires the 'requests' library.
+        
+        Returns empty string if download fails.
+        """
+        if not REQUESTS_AVAILABLE:
+            logger.warning("requests library not available for font embedding")
+            return ""
+        
+        try:
+            # First, get the CSS from Google Fonts
             url_safe_name = font_name.replace(' ', '+')
-            # Include multiple weights to support bold/normal
-            font_params.append(f"family={url_safe_name}:wght@300;400;600;700")
-        
-        fonts_url = "https://fonts.googleapis.com/css2?" + "&".join(font_params)
-        
-        # Create style element with @import
-        style_content = f"@import url('{fonts_url}');"
-        
-        # Add style to defs
-        style = dwg.defs.add(dwg.style(style_content))
-        
-        logger.debug(f"Google Fonts URL: {fonts_url}")
+            css_url = f"https://fonts.googleapis.com/css2?family={url_safe_name}:wght@400;700"
+            
+            # Use a browser-like user agent to get woff2 format
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            
+            response = requests.get(css_url, headers=headers, timeout=10)
+            if response.status_code != 200:
+                logger.warning(f"Failed to fetch Google Font CSS for {font_name}")
+                return ""
+            
+            css_content = response.text
+            
+            # Extract font URLs from the CSS
+            # Look for url(...) patterns
+            url_pattern = r'url\((https://fonts\.gstatic\.com/[^)]+)\)'
+            font_urls = re.findall(url_pattern, css_content)
+            
+            if not font_urls:
+                logger.warning(f"No font URLs found for {font_name}")
+                return ""
+            
+            # Download and embed each font file
+            embedded_css_parts = []
+            for font_url in font_urls[:2]:  # Limit to 2 variants (regular + bold)
+                try:
+                    font_response = requests.get(font_url, headers=headers, timeout=10)
+                    if font_response.status_code == 200:
+                        # Encode font as base64
+                        font_base64 = base64.b64encode(font_response.content).decode('utf-8')
+                        
+                        # Determine format
+                        if '.woff2' in font_url:
+                            font_format = 'woff2'
+                            mime_type = 'font/woff2'
+                        elif '.woff' in font_url:
+                            font_format = 'woff'
+                            mime_type = 'font/woff'
+                        else:
+                            font_format = 'truetype'
+                            mime_type = 'font/ttf'
+                        
+                        # Create @font-face rule with embedded font
+                        weight = '700' if 'bold' in font_url.lower() or '700' in font_url else '400'
+                        embedded_css_parts.append(f"""
+@font-face {{
+    font-family: '{font_name}';
+    font-weight: {weight};
+    src: url('data:{mime_type};base64,{font_base64}') format('{font_format}');
+}}""")
+                        logger.debug(f"Embedded font: {font_name} weight {weight}")
+                except Exception as e:
+                    logger.warning(f"Failed to download font file: {e}")
+            
+            return "\n".join(embedded_css_parts)
+            
+        except Exception as e:
+            logger.warning(f"Failed to embed Google Font {font_name}: {e}")
+            return ""
     
     def _overlay_containers_on_image(self, image: np.ndarray, containers: List) -> np.ndarray:
         """Overlay actual container image data on debug image"""
@@ -288,59 +447,130 @@ class SVGGenerator:
         return result
     
     def _overlay_text_on_image(self, image: np.ndarray, text_elements: List) -> np.ndarray:
-        """Overlay text elements on debug image without annotations - clean final render"""
+        """Overlay text elements on debug image using actual rendered text images"""
         result = image.copy()
         
-        for i, text_elem in enumerate(text_elements):
-            bbox = text_elem.bbox
-            text = getattr(text_elem, 'text', '')
-            color = getattr(text_elem, 'color', '#000000')
-            
-            # Convert hex color to BGR
-            if color.startswith('#'):
-                r = int(color[1:3], 16)
-                g = int(color[3:5], 16)
-                b = int(color[5:7], 16)
-                bgr_color = (b, g, r)
-            else:
-                bgr_color = (0, 0, 0)
-            
-            # Get text properties
-            font_size = getattr(text_elem, 'font_size', 12)
-            font_weight = getattr(text_elem, 'font_weight', 'normal')
-            
-            # Calculate proper scale and thickness
-            scale = max(0.3, min(2.0, font_size / 30.0))  # Better scaling
-            
-            # Bold text should be thicker
-            if font_weight == 'bold':
-                thickness = max(2, int(scale * 3))
-            else:
-                thickness = max(1, int(scale * 1.5))
-            
-            # Handle multi-line text
-            lines = text.split('\n') if '\n' in text else [text]
-            
-            if len(lines) > 1:
-                # Multi-line text
-                line_height = int(font_size * 1.2)
-                total_height = len(lines) * line_height
-                y_start = bbox.y + (bbox.h - total_height) // 2 + int(font_size * 0.75)
+        # Check if we're using text-as-image rendering
+        text_rendering = SVG_OUTPUT.get('text_rendering', 'svg')
+        
+        if text_rendering == 'image':
+            # Use actual rendered text images for accurate preview
+            for i, text_elem in enumerate(text_elements):
+                bbox = text_elem.bbox
                 
-                for line_idx, line in enumerate(lines):
-                    if line.strip():
-                        y_pos = y_start + (line_idx * line_height)
-                        cv2.putText(result, line[:50], (bbox.x + 2, y_pos),
-                                   cv2.FONT_HERSHEY_SIMPLEX, scale, bgr_color, thickness, cv2.LINE_AA)
-            else:
-                # Single line - vertically centered
-                y_center = bbox.y + (bbox.h // 2)
-                y_baseline = y_center + int(font_size * 0.35)
+                # Get font info
+                font_family = text_elem.classified_font or text_elem.font_family or 'Roboto'
+                font_size = text_elem.font_size or 16
+                font_weight = text_elem.font_weight or 'normal'
+                is_bold = font_weight.lower() in ['bold', '700', '800', '900']
                 
-                cv2.putText(result, text[:50], (bbox.x + 2, y_baseline),
-                           cv2.FONT_HERSHEY_SIMPLEX, scale, bgr_color, thickness, cv2.LINE_AA)
+                # Get color
+                if text_elem.color:
+                    if isinstance(text_elem.color, str) and text_elem.color.startswith('#'):
+                        hex_color = text_elem.color.lstrip('#')
+                        color = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+                    elif isinstance(text_elem.color, (list, tuple)) and len(text_elem.color) >= 3:
+                        color = tuple(text_elem.color[:3])
+                    else:
+                        color = (0, 0, 0)
+                else:
+                    color = (0, 0, 0)
+                
+                # Render the text image
+                text_img = self._render_text_as_image(
+                    text=text_elem.text,
+                    font_family=font_family,
+                    font_size=font_size,
+                    color=color,
+                    is_bold=is_bold
+                )
+                
+                if text_img is not None:
+                    # Convert RGBA to BGR for OpenCV
+                    text_img_bgr = cv2.cvtColor(text_img, cv2.COLOR_RGBA2BGRA)
+                    
+                    # Get alpha channel
+                    alpha = text_img[:, :, 3] / 255.0
+                    
+                    # Get dimensions
+                    text_h, text_w = text_img.shape[:2]
+                    x, y = bbox.x, bbox.y
+                    
+                    # Ensure we don't go out of bounds
+                    if y + text_h > result.shape[0]:
+                        text_h = result.shape[0] - y
+                        text_img_bgr = text_img_bgr[:text_h, :]
+                        alpha = alpha[:text_h, :]
+                    if x + text_w > result.shape[1]:
+                        text_w = result.shape[1] - x
+                        text_img_bgr = text_img_bgr[:, :text_w]
+                        alpha = alpha[:, :text_w]
+                    
+                    # Alpha blend the text onto the result
+                    for c in range(3):  # BGR channels
+                        result[y:y+text_h, x:x+text_w, c] = (
+                            alpha * text_img_bgr[:, :, c] +
+                            (1 - alpha) * result[y:y+text_h, x:x+text_w, c]
+                        )
+                else:
+                    # Fallback to OpenCV text rendering
+                    self._overlay_text_opencv(result, text_elem)
+        else:
+            # Use original OpenCV text rendering
+            for text_elem in text_elements:
+                self._overlay_text_opencv(result, text_elem)
         
         return result
+    
+    def _overlay_text_opencv(self, image: np.ndarray, text_elem: TextElement):
+        """Helper method to overlay text using OpenCV (fallback)"""
+        bbox = text_elem.bbox
+        text = getattr(text_elem, 'text', '')
+        color = getattr(text_elem, 'color', '#000000')
+        
+        # Convert hex color to BGR
+        if isinstance(color, str) and color.startswith('#'):
+            r = int(color[1:3], 16)
+            g = int(color[3:5], 16)
+            b = int(color[5:7], 16)
+            bgr_color = (b, g, r)
+        else:
+            bgr_color = (0, 0, 0)
+        
+        # Get text properties
+        font_size = getattr(text_elem, 'font_size', 12)
+        font_weight = getattr(text_elem, 'font_weight', 'normal')
+        
+        # Calculate proper scale and thickness
+        scale = max(0.3, min(2.0, font_size / 30.0))
+        
+        # Bold text should be thicker
+        if font_weight == 'bold':
+            thickness = max(2, int(scale * 3))
+        else:
+            thickness = max(1, int(scale * 1.5))
+        
+        # Handle multi-line text
+        lines = text.split('\n') if '\n' in text else [text]
+        
+        if len(lines) > 1:
+            # Multi-line text
+            line_height = int(font_size * 1.2)
+            total_height = len(lines) * line_height
+            y_start = bbox.y + (bbox.h - total_height) // 2 + int(font_size * 0.75)
+            
+            for line_idx, line in enumerate(lines):
+                if line.strip():
+                    y_pos = y_start + (line_idx * line_height)
+                    cv2.putText(image, line[:50], (bbox.x + 2, y_pos),
+                               cv2.FONT_HERSHEY_SIMPLEX, scale, bgr_color, thickness, cv2.LINE_AA)
+        else:
+            # Single line - vertically centered
+            y_center = bbox.y + (bbox.h // 2)
+            y_baseline = y_center + int(font_size * 0.35)
+            
+            cv2.putText(image, text[:50], (bbox.x + 2, y_baseline),
+                       cv2.FONT_HERSHEY_SIMPLEX, scale, bgr_color, thickness, cv2.LINE_AA)
     
     def _add_container(self, dwg: svgwrite.Drawing, layer: svgwrite.container.Group,
                       container, container_id: str):
@@ -457,6 +687,7 @@ class SVGGenerator:
         
         # Create SVG drawing
         dwg = svgwrite.Drawing(output_path, size=(int(width), int(height)), profile='full')
+        self.dwg = dwg  # Store reference for use in helper methods
         
         # Add layers in order
         layer_order = self.config.get('layer_order', 
@@ -618,14 +849,34 @@ class SVGGenerator:
         """Add text elements to layer with proper positioning and multi-line support"""
         logger.info(f"Adding {len(texts)} text elements to layer...")
         
+        # Check if we should render text as images
+        text_rendering = SVG_OUTPUT.get('text_rendering', 'svg')
+        
+        if text_rendering == 'image':
+            # Render all text as images for guaranteed font appearance
+            for i, text_elem in enumerate(texts):
+                self._add_text_as_image(layer, text_elem, index=i)
+                # Log metadata
+                if text_elem.classified_font:
+                    logger.debug(f"Text #{i} (as image): '{text_elem.text[:30]}...' | Font: {text_elem.classified_font} | "
+                               f"Size: {text_elem.font_size}px")
+            return
+        
+        # Original SVG text rendering
+        # Get font fallback mapping
+        font_mapping = self._get_font_fallback_mapping()
+        
         for i, text_elem in enumerate(texts):
             bbox = text_elem.bbox
             
-            # Build font family - use classified font if available with fallbacks
-            font_family = text_elem.font_family
+            # Build font family with proper fallback chain
             if text_elem.classified_font:
-                # Add web-safe fallbacks to ensure text displays even if Google Fonts fail to load
-                font_family = f"{text_elem.classified_font}, Arial, Helvetica, sans-serif"
+                classified = text_elem.classified_font
+                fallback = font_mapping.get(classified, font_mapping.get('default'))
+                # Quote the primary font name, then add fallbacks
+                font_family = f"'{classified}', {fallback}"
+            else:
+                font_family = font_mapping.get('default')
             
             # Handle multi-line text
             lines = text_elem.text.split('\n') if '\n' in text_elem.text else [text_elem.text]
@@ -724,6 +975,261 @@ class SVGGenerator:
         img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
         
         return img_base64
+    
+    def _get_font_path(self, font_family: str, is_bold: bool = False) -> Optional[str]:
+        """
+        Get the path to a font file, downloading Google Fonts if needed.
+        Returns None if font cannot be found/downloaded.
+        """
+        # Create fonts cache directory
+        fonts_dir = os.path.join(os.path.dirname(__file__), '.font_cache')
+        os.makedirs(fonts_dir, exist_ok=True)
+        
+        # Normalize font name for filename
+        font_name_normalized = font_family.replace(' ', '')
+        weight = 'Bold' if is_bold else 'Regular'
+        font_filename = f"{font_name_normalized}-{weight}.ttf"
+        font_path = os.path.join(fonts_dir, font_filename)
+        
+        # Check if font is already cached
+        if os.path.exists(font_path):
+            return font_path
+        
+        # Try to download from Google Fonts
+        if REQUESTS_AVAILABLE:
+            try:
+                # Google Fonts API URL
+                font_url_name = font_family.replace(' ', '+')
+                weight_num = '700' if is_bold else '400'
+                
+                # Use the Google Fonts CSS API to get the actual font URL
+                css_url = f"https://fonts.googleapis.com/css2?family={font_url_name}:wght@{weight_num}"
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                
+                response = requests.get(css_url, headers=headers, timeout=10)
+                if response.status_code == 200:
+                    # Extract TTF/WOFF2 URL from CSS
+                    css_content = response.text
+                    # Look for url() in the CSS
+                    url_match = re.search(r'url\((https://fonts\.gstatic\.com/[^)]+)\)', css_content)
+                    if url_match:
+                        font_url = url_match.group(1)
+                        
+                        # Download the font file
+                        font_response = requests.get(font_url, headers=headers, timeout=30)
+                        if font_response.status_code == 200:
+                            # Determine extension from URL or content-type
+                            if '.woff2' in font_url:
+                                # Convert WOFF2 to TTF or use as-is with PIL
+                                font_path = os.path.join(fonts_dir, f"{font_name_normalized}-{weight}.woff2")
+                            else:
+                                font_path = os.path.join(fonts_dir, font_filename)
+                            
+                            with open(font_path, 'wb') as f:
+                                f.write(font_response.content)
+                            
+                            self.logger.info(f"Downloaded font: {font_family} ({weight})")
+                            return font_path
+                            
+            except Exception as e:
+                self.logger.warning(f"Failed to download font {font_family}: {e}")
+        
+        # Fallback to system fonts
+        system_font_paths = [
+            # macOS
+            f"/Library/Fonts/{font_family}.ttf",
+            f"/Library/Fonts/{font_family.replace(' ', '')}.ttf",
+            f"/System/Library/Fonts/{font_family}.ttf",
+            os.path.expanduser(f"~/Library/Fonts/{font_family}.ttf"),
+            # Linux
+            f"/usr/share/fonts/truetype/{font_family.lower()}/{font_family.replace(' ', '')}-{weight}.ttf",
+            # Windows
+            f"C:/Windows/Fonts/{font_family.replace(' ', '')}.ttf",
+        ]
+        
+        for path in system_font_paths:
+            if os.path.exists(path):
+                return path
+        
+        return None
+    
+    def _render_text_as_image(self, text: str, font_family: str, font_size: int, 
+                               color: Tuple[int, int, int], is_bold: bool = False,
+                               width: Optional[int] = None, height: Optional[int] = None) -> Optional[np.ndarray]:
+        """
+        Render text as an image using PIL with the specified font.
+        Returns a numpy array (RGBA) of the rendered text.
+        
+        Args:
+            text: The text to render
+            font_family: Google Font family name
+            font_size: Font size in pixels
+            color: RGB color tuple
+            is_bold: Whether to use bold weight
+            width: Optional width constraint
+            height: Optional height constraint
+            
+        Returns:
+            RGBA numpy array of rendered text, or None if rendering fails
+        """
+        try:
+            # Get font file
+            font_path = self._get_font_path(font_family, is_bold)
+            
+            if font_path and os.path.exists(font_path):
+                try:
+                    font = ImageFont.truetype(font_path, font_size)
+                except Exception as e:
+                    self.logger.warning(f"Failed to load font from {font_path}: {e}")
+                    font = ImageFont.load_default()
+            else:
+                self.logger.warning(f"Font not found: {font_family}, using default")
+                font = ImageFont.load_default()
+            
+            # Create a temporary image to measure text size
+            temp_img = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
+            temp_draw = ImageDraw.Draw(temp_img)
+            
+            # Get text bounding box
+            bbox = temp_draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            
+            # Add some padding
+            padding = 4
+            img_width = text_width + padding * 2
+            img_height = text_height + padding * 2
+            
+            # Use provided dimensions if given
+            if width:
+                img_width = max(img_width, width)
+            if height:
+                img_height = max(img_height, height)
+            
+            # Create final image with transparent background
+            img = Image.new('RGBA', (img_width, img_height), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            
+            # Calculate position to center text
+            x = padding - bbox[0]  # Adjust for any negative offset
+            y = padding - bbox[1]
+            
+            # Draw text
+            draw.text((x, y), text, font=font, fill=(*color, 255))
+            
+            # Convert to numpy array
+            return np.array(img)
+            
+        except Exception as e:
+            self.logger.error(f"Error rendering text as image: {e}")
+            return None
+    
+    def _pil_to_base64(self, pil_img: Image.Image) -> str:
+        """Convert PIL Image to base64 encoded PNG"""
+        buffer = io.BytesIO()
+        pil_img.save(buffer, format='PNG')
+        buffer.seek(0)
+        return base64.b64encode(buffer.read()).decode('utf-8')
+    
+    def _add_text_as_image(self, layer, text_elem: TextElement, index: int = 0):
+        """
+        Add a text element as a rasterized image instead of SVG text.
+        This ensures the font renders exactly as intended.
+        """
+        # Get font info - prefer classified_font over font_family
+        font_family = text_elem.classified_font or text_elem.font_family or 'Roboto'
+        font_size = text_elem.font_size or 16
+        font_weight = text_elem.font_weight or 'normal'
+        is_bold = font_weight.lower() in ['bold', '700', '800', '900']
+        
+        # Get color - parse hex string or use tuple
+        if text_elem.color:
+            if isinstance(text_elem.color, str) and text_elem.color.startswith('#'):
+                # Convert hex to RGB tuple
+                hex_color = text_elem.color.lstrip('#')
+                color = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            elif isinstance(text_elem.color, (list, tuple)) and len(text_elem.color) >= 3:
+                color = tuple(text_elem.color[:3])
+            else:
+                color = (0, 0, 0)
+        else:
+            color = (0, 0, 0)
+        
+        # Render text as image
+        text_img = self._render_text_as_image(
+            text=text_elem.text,
+            font_family=font_family,
+            font_size=font_size,
+            color=color,
+            is_bold=is_bold
+        )
+        
+        if text_img is not None:
+            # Save rendered text image to debug folder if debug mode is enabled
+            if DEBUG.get('save_intermediate_steps', False):
+                debug_dir = DEBUG.get('output_dir', './debug_output')
+                text_images_dir = os.path.join(debug_dir, 'rendered_text')
+                os.makedirs(text_images_dir, exist_ok=True)
+                
+                # Sanitize text for filename
+                safe_text = ''.join(c if c.isalnum() else '_' for c in text_elem.text[:30])
+                debug_filename = f"text_{index:03d}_{safe_text}_{font_family.replace(' ', '_')}_{font_size}px.png"
+                debug_path = os.path.join(text_images_dir, debug_filename)
+                
+                # Save the rendered text image
+                pil_img_debug = Image.fromarray(text_img, 'RGBA')
+                pil_img_debug.save(debug_path)
+                self.logger.debug(f"Saved rendered text image: {debug_path}")
+            
+            # Convert RGBA numpy array to base64
+            pil_img = Image.fromarray(text_img, 'RGBA')
+            img_data = self._pil_to_base64(pil_img)
+            
+            # Get bbox - use w/h not width/height
+            bbox = text_elem.bbox
+            x, y, w, h = bbox.x, bbox.y, bbox.w, bbox.h
+            
+            # Add image to SVG
+            img_elem = layer.add(
+                self.dwg.image(
+                    href=f"data:image/png;base64,{img_data}",
+                    insert=(x, y),
+                    size=(text_img.shape[1], text_img.shape[0])  # Use actual rendered size
+                )
+            )
+        else:
+            # Fallback to regular SVG text
+            self.logger.warning(f"Failed to render text as image, using SVG text: {text_elem.text[:30]}...")
+            self._add_text_element_svg(layer, text_elem)
+    
+    def _add_text_element_svg(self, layer, text_elem: TextElement):
+        """Fallback method to add text as SVG text element"""
+        font_mapping = self._get_font_fallback_mapping()
+        
+        # Build font family with proper fallback chain
+        if text_elem.classified_font:
+            classified = text_elem.classified_font
+            fallback = font_mapping.get(classified, font_mapping.get('default'))
+            font_family = f"'{classified}', {fallback}"
+        else:
+            font_family = font_mapping.get('default')
+        
+        bbox = text_elem.bbox
+        y_center = bbox.y + (bbox.h / 2.0)
+        y_baseline = y_center + (text_elem.font_size * 0.35)
+        x = float(bbox.x)
+        
+        text = self.dwg.text(text_elem.text,
+                           insert=(x, y_baseline),
+                           fill=text_elem.color,
+                           font_family=font_family,
+                           font_size=f'{int(text_elem.font_size)}px',
+                           font_weight=text_elem.font_weight,
+                           font_style=text_elem.font_style)
+        
+        layer.add(text)
 
 
 def create_layered_svg(elements: Dict, output_path: str = 'output.svg') -> str:

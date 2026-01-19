@@ -52,6 +52,18 @@ SVG_OUTPUT = {
     'default_font_size': 12,
     'preserve_aspect_ratio': True,
     'layer_order': ['background', 'shapes', 'images', 'text'],
+    # Font embedding strategy:
+    # 'google_fonts' - Use @import for Google Fonts (requires internet to view)
+    # 'web_safe' - Use web-safe font fallbacks only (works offline, approximate look)
+    # 'both' - Include both Google Fonts import AND web-safe fallbacks (recommended)
+    # 'embedded' - Download and embed font files as base64 (largest file, fully portable)
+    'font_embedding': 'both',
+    # Whether to try embedding fonts as base64 (makes SVG self-contained but larger)
+    'embed_font_files': False,
+    # Text rendering mode:
+    # 'svg' - Render text as SVG text elements (scalable but may have font issues)
+    # 'image' - Render text as rasterized images (guaranteed font appearance, not scalable)
+    'text_rendering': 'image',
 }
 
 # Color Settings

@@ -319,28 +319,9 @@ class ImageDetector:
         # Merge overlapping boxes
         merged = merge_overlapping_boxes(candidates, iou_threshold=0.3)
         
-        # Apply bbox padding to capture anti-aliasing and feathered edges
-        bbox_padding = self.config.get('bbox_padding', 6)
-        img_h, img_w = image.shape[:2]
-        
-        padded_bboxes = []
-        for bbox in merged:
-            # Expand bbox by padding, clamping to image boundaries
-            new_x = max(0, bbox.x - bbox_padding)
-            new_y = max(0, bbox.y - bbox_padding)
-            new_x2 = min(img_w, bbox.x2 + bbox_padding)
-            new_y2 = min(img_h, bbox.y2 + bbox_padding)
-            new_w = new_x2 - new_x
-            new_h = new_y2 - new_y
-            
-            padded_bbox = BoundingBox(new_x, new_y, new_w, new_h, label=bbox.label)
-            padded_bboxes.append(padded_bbox)
-        
-        logger.debug(f"Applied {bbox_padding}px padding to {len(padded_bboxes)} bboxes")
-        
         # Create ImageElement objects with extracted data
         image_elements = []
-        for bbox in padded_bboxes:
+        for bbox in merged:
             # Extract image data
             img_data = image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
             

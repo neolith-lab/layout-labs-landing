@@ -31,8 +31,6 @@ IMAGE_PROCESSING = {
     'texture_threshold': 35,  # LOWERED from 50 - detect smoother icons
     'min_contrast_std': 5,  # LOWERED from 10 - detect lower contrast icons
     'min_fill_ratio': 0.05,  # LOWERED from 0.1 - detect sparser icons
-    # Bounding box expansion (Plan A - Issue 2)
-    'bbox_padding': 6,  # pixels to expand each bbox to capture anti-aliasing
 }
 
 # Shape Detection Settings

@@ -149,12 +149,13 @@ class RasterToSVGConverter:
         
         logger.info(f"Kept {len(image_elements)} images, filtered {len(filtered_containers)} container-like detections")
         
-        # Step 2.1.5: Remove detected images and infill
+        # Step 2.1.5: Remove detected images using border color fill
         logger.info("=" * 50)
         logger.info("PHASE 2.1.5: Image Removal and Infilling")
         logger.info("=" * 50)
         
-        # Remove images (but NOT the filtered containers) and fill with average border color
+        # Remove images (but NOT the filtered containers) and fill with dominant border color
+        # Uses the same technique as text removal for consistency
         images_removed_image = self.background_filler.fill_with_border_average(
             text_removed_image, image_bboxes, border_width=5
         )

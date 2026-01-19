@@ -263,9 +263,9 @@ class ImageDetector:
         kernel_small = np.ones((3, 3), np.uint8)
         combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel_small)
         
-        # Dilate slightly to merge nearby components
-        kernel_dilate = np.ones((5, 5), np.uint8)
-        dilated = cv2.dilate(combined, kernel_dilate, iterations=2)
+        # Dilate slightly to merge nearby components - REDUCED for tighter bboxes
+        kernel_dilate = np.ones((3, 3), np.uint8)
+        dilated = cv2.dilate(combined, kernel_dilate, iterations=1)
         
         # Find contours
         contours, hierarchy = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

@@ -108,6 +108,9 @@ class RasterToSVGConverter:
         
         logger.info(f"Text elements detected: {len(text_elements)}")
         
+        # Print detailed text summary with font information
+        self._print_text_summary(text_elements)
+        
         # ============================================================
         # PHASE 1.4: TEXT REMOVAL AND INFILLING
         # ============================================================
@@ -345,6 +348,35 @@ class RasterToSVGConverter:
         logger.info(f"Output saved to: {output_svg_path}")
         
         return results
+    
+    def _print_text_summary(self, text_elements: List[TextElement]):
+        """Print summary of detected text with font information"""
+        if not text_elements:
+            logger.info("No text elements detected")
+            return
+        
+        logger.info(f"\n{'='*100}")
+        logger.info(f"Text Detection Summary - {len(text_elements)} elements")
+        logger.info(f"{'='*100}")
+        logger.info(f"{'Text':<40} {'Font':<30} {'Size':<8} {'Lines':<8} {'Confidence':<12}")
+        logger.info(f"{'='*100}")
+        
+        for element in text_elements:
+            text_preview = element.text.replace('\n', ' ')[:40]
+            
+            # Build font display
+            if element.classified_font:
+                font_display = f"{element.classified_font}"
+                if element.classified_font_version:
+                    font_display += f" ({element.classified_font_version})"
+                confidence_str = f"{element.font_classification_confidence:.3f}"
+            else:
+                font_display = f"{element.font_family} (fallback)"
+                confidence_str = f"{element.confidence:.3f}"
+            
+            logger.info(f"{text_preview:<40} {font_display:<30} {element.font_size}pt    {element.num_lines}        {confidence_str:<12}")
+        
+        logger.info(f"{'='*100}\n")
     
     def _bboxes_match(self, bbox1: BoundingBox, bbox2: BoundingBox, tolerance: int = 5) -> bool:
         """Check if two bounding boxes are essentially the same"""

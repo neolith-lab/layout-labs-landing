@@ -8,6 +8,11 @@ OCR_CONFIG = {
     'min_confidence': 60,
     'use_easyocr': True,  # Fallback to EasyOCR for better accuracy
     'languages': ['en'],
+    # Font size normalization settings
+    'normalize_font_sizes': True,  # Enable font size standardization
+    'font_size_cluster_tolerance': 0.35,  # 35% tolerance for clustering similar sizes
+    'min_font_size': 6,   # Minimum font size in points
+    'max_font_size': 200, # Maximum font size in points
 }
 
 # Image Processing Settings

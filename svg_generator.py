@@ -81,6 +81,10 @@ class SVGGenerator:
         # Add defs for any reusable elements (like rounded rect clips)
         defs = dwg.defs
         
+        # Collect unique fonts from text elements and embed them
+        if text_elements:
+            self._add_google_fonts(dwg, text_elements)
+        
         # For debug: we'll build a composite image layer by layer
         if DEBUG.get('save_intermediate_steps', False):
             # Start with background as base for debug visualization
@@ -164,6 +168,44 @@ class SVGGenerator:
         
         return output_path
     
+    def _add_google_fonts(self, dwg: svgwrite.Drawing, text_elements: List[TextElement]):
+        """
+        Add Google Fonts to SVG by embedding @font-face declarations
+        
+        This ensures fonts render correctly even if not installed on the viewer's system
+        """
+        # Collect unique fonts from all text elements
+        unique_fonts = set()
+        for text_elem in text_elements:
+            if text_elem.classified_font:
+                # Clean font name for URL (replace spaces with +)
+                font_name = text_elem.classified_font
+                unique_fonts.add(font_name)
+        
+        if not unique_fonts:
+            return
+        
+        logger.info(f"Embedding {len(unique_fonts)} Google Fonts in SVG")
+        
+        # Build Google Fonts URL
+        # Format: https://fonts.googleapis.com/css2?family=Font+Name:wght@400;700&family=Another+Font
+        font_params = []
+        for font_name in sorted(unique_fonts):
+            # Replace spaces with +, handle special characters
+            url_safe_name = font_name.replace(' ', '+')
+            # Include multiple weights to support bold/normal
+            font_params.append(f"family={url_safe_name}:wght@300;400;600;700")
+        
+        fonts_url = "https://fonts.googleapis.com/css2?" + "&".join(font_params)
+        
+        # Create style element with @import
+        style_content = f"@import url('{fonts_url}');"
+        
+        # Add style to defs
+        style = dwg.defs.add(dwg.style(style_content))
+        
+        logger.debug(f"Google Fonts URL: {fonts_url}")
+    
     def _overlay_containers_on_image(self, image: np.ndarray, containers: List) -> np.ndarray:
         """Overlay actual container image data on debug image"""
         result = image.copy()
@@ -246,9 +288,10 @@ class SVGGenerator:
         return result
     
     def _overlay_text_on_image(self, image: np.ndarray, text_elements: List) -> np.ndarray:
-        """Overlay text elements on debug image"""
+        """Overlay text elements on debug image without annotations - clean final render"""
         result = image.copy()
-        for text_elem in text_elements:
+        
+        for i, text_elem in enumerate(text_elements):
             bbox = text_elem.bbox
             text = getattr(text_elem, 'text', '')
             color = getattr(text_elem, 'color', '#000000')
@@ -262,13 +305,40 @@ class SVGGenerator:
             else:
                 bgr_color = (0, 0, 0)
             
-            # Draw text (simplified - actual font rendering would be more complex)
+            # Get text properties
             font_size = getattr(text_elem, 'font_size', 12)
-            scale = font_size / 30.0  # Approximate scaling
+            font_weight = getattr(text_elem, 'font_weight', 'normal')
             
-            # Draw text at bbox position
-            cv2.putText(result, text[:50], (bbox.x, bbox.y + bbox.h - 5),
-                       cv2.FONT_HERSHEY_SIMPLEX, scale, bgr_color, 1, cv2.LINE_AA)
+            # Calculate proper scale and thickness
+            scale = max(0.3, min(2.0, font_size / 30.0))  # Better scaling
+            
+            # Bold text should be thicker
+            if font_weight == 'bold':
+                thickness = max(2, int(scale * 3))
+            else:
+                thickness = max(1, int(scale * 1.5))
+            
+            # Handle multi-line text
+            lines = text.split('\n') if '\n' in text else [text]
+            
+            if len(lines) > 1:
+                # Multi-line text
+                line_height = int(font_size * 1.2)
+                total_height = len(lines) * line_height
+                y_start = bbox.y + (bbox.h - total_height) // 2 + int(font_size * 0.75)
+                
+                for line_idx, line in enumerate(lines):
+                    if line.strip():
+                        y_pos = y_start + (line_idx * line_height)
+                        cv2.putText(result, line[:50], (bbox.x + 2, y_pos),
+                                   cv2.FONT_HERSHEY_SIMPLEX, scale, bgr_color, thickness, cv2.LINE_AA)
+            else:
+                # Single line - vertically centered
+                y_center = bbox.y + (bbox.h // 2)
+                y_baseline = y_center + int(font_size * 0.35)
+                
+                cv2.putText(result, text[:50], (bbox.x + 2, y_baseline),
+                           cv2.FONT_HERSHEY_SIMPLEX, scale, bgr_color, thickness, cv2.LINE_AA)
         
         return result
     
@@ -545,27 +615,96 @@ class SVGGenerator:
     
     def _add_text_layer(self, dwg: svgwrite.Drawing, layer: svgwrite.container.Group,
                        texts: List[TextElement]):
-        """Add text elements to layer"""
+        """Add text elements to layer with proper positioning and multi-line support"""
         logger.info(f"Adding {len(texts)} text elements to layer...")
         
         for i, text_elem in enumerate(texts):
             bbox = text_elem.bbox
             
-            # Position text at baseline (approximate)
-            x = float(bbox.x)
-            y = float(bbox.y + bbox.h * 0.8)  # Rough baseline estimation
+            # Build font family - use classified font if available with fallbacks
+            font_family = text_elem.font_family
+            if text_elem.classified_font:
+                # Add web-safe fallbacks to ensure text displays even if Google Fonts fail to load
+                font_family = f"{text_elem.classified_font}, Arial, Helvetica, sans-serif"
             
-            # Create text element
-            text = dwg.text(text_elem.text,
-                           insert=(x, y),
-                           fill=text_elem.color,
-                           font_family=text_elem.font_family,
-                           font_size=f'{int(text_elem.font_size)}px',
-                           font_weight=text_elem.font_weight,
-                           font_style=text_elem.font_style,
-                           id=f'text_{i}')
+            # Handle multi-line text
+            lines = text_elem.text.split('\n') if '\n' in text_elem.text else [text_elem.text]
             
-            layer.add(text)
+            if len(lines) > 1 or text_elem.num_lines > 1:
+                # Multi-line text using tspan elements
+                self._add_multiline_text(dwg, layer, text_elem, lines, font_family, i)
+            else:
+                # Single line text - center vertically in bbox
+                self._add_single_line_text(dwg, layer, text_elem, font_family, i)
+            
+            # Log metadata
+            if text_elem.classified_font:
+                logger.debug(f"Text #{i}: '{text_elem.text[:30]}...' | Font: {text_elem.classified_font} | "
+                           f"Size: {text_elem.font_size}px | Lines: {text_elem.num_lines}")
+    
+    def _add_single_line_text(self, dwg: svgwrite.Drawing, layer: svgwrite.container.Group,
+                             text_elem: TextElement, font_family: str, index: int):
+        """Add single-line text centered in its bounding box"""
+        bbox = text_elem.bbox
+        
+        # Calculate vertical center position
+        # In SVG, text y-position is at the baseline, not top
+        # For vertical centering: middle of bbox + some offset for baseline
+        # Approximate baseline offset is ~0.75 of font size from center
+        y_center = bbox.y + (bbox.h / 2.0)
+        y_baseline = y_center + (text_elem.font_size * 0.35)  # Adjust baseline
+        
+        # Horizontal start (left-aligned for now)
+        x = float(bbox.x)
+        
+        # Create text element
+        text = dwg.text(text_elem.text,
+                       insert=(x, y_baseline),
+                       fill=text_elem.color,
+                       font_family=font_family,
+                       font_size=f'{int(text_elem.font_size)}px',
+                       font_weight=text_elem.font_weight,
+                       font_style=text_elem.font_style,
+                       id=f'text_{index}')
+        
+        layer.add(text)
+    
+    def _add_multiline_text(self, dwg: svgwrite.Drawing, layer: svgwrite.container.Group,
+                           text_elem: TextElement, lines: List[str], font_family: str, index: int):
+        """Add multi-line text with proper line spacing"""
+        bbox = text_elem.bbox
+        
+        # Calculate line height (typically 1.2x font size)
+        line_height = text_elem.font_size * 1.2
+        
+        # Calculate total text block height
+        total_text_height = len(lines) * line_height
+        
+        # Start position - center the text block vertically
+        y_start = bbox.y + (bbox.h - total_text_height) / 2.0 + text_elem.font_size * 0.75
+        
+        # Horizontal start
+        x = float(bbox.x)
+        
+        # Create text element with tspan for each line
+        text = dwg.text('',
+                       insert=(x, y_start),
+                       fill=text_elem.color,
+                       font_family=font_family,
+                       font_size=f'{int(text_elem.font_size)}px',
+                       font_weight=text_elem.font_weight,
+                       font_style=text_elem.font_style,
+                       id=f'text_{index}')
+        
+        # Add each line as a tspan
+        for line_idx, line in enumerate(lines):
+            if line.strip():  # Skip empty lines
+                tspan = dwg.tspan(line,
+                                 x=[x],
+                                 dy=[f'{line_height}px' if line_idx > 0 else '0'])
+                text.add(tspan)
+        
+        layer.add(text)
     
     def _numpy_to_base64(self, image: np.ndarray) -> str:
         """Convert numpy array to base64 encoded PNG"""

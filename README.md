@@ -18,10 +18,13 @@ This comprehensive tool automatically converts raster infographics (PNG, JPG) in
 
 ### 🔤 Advanced Text Extraction
 - Dual OCR engines (Tesseract + EasyOCR)
+- **Font size standardization** - Consistent sizing relative to image dimensions
 - Font size, weight, and style detection
+- Multi-line text handling with automatic line counting
 - Accurate color extraction
 - Bounding box identification
 - Confidence scoring
+- ML-based font family classification
 
 ### 🖼️ Intelligent Image Detection
 - Multi-method detection (color variance, edge density, texture analysis)
@@ -115,6 +118,7 @@ python cli.py input.png -o output.svg --ocr-confidence 70 --min-shape-area 200
 
 - **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - Comprehensive usage guide
 - **[API_REFERENCE.md](API_REFERENCE.md)** - Complete API documentation
+- **[FONT_SIZE_STANDARDIZATION.md](FONT_SIZE_STANDARDIZATION.md)** - Font size normalization guide
 - **[example_usage.py](example_usage.py)** - Working examples
 
 ## 🔧 Project Structure

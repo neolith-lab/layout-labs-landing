@@ -116,8 +116,9 @@ class ImageDetector:
         # Normalize
         variance_map = cv2.normalize(variance_map, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
         
-        # Threshold to find high variance regions
-        _, thresh = cv2.threshold(variance_map, 100, 255, cv2.THRESH_BINARY)
+        # Threshold to find high variance regions - LOWERED threshold for better detection
+        variance_threshold = self.config.get('color_variance_threshold', 70)
+        _, thresh = cv2.threshold(variance_map, variance_threshold, 255, cv2.THRESH_BINARY)
         
         # Apply exclusion mask
         thresh = cv2.bitwise_and(thresh, cv2.bitwise_not(exclusion_mask))
@@ -184,9 +185,10 @@ class ImageDetector:
         sqr_mean = cv2.blur(gray.astype(np.float32)**2, (kernel_size, kernel_size))
         texture = np.sqrt(np.maximum(sqr_mean - mean**2, 0))
         
-        # Normalize and threshold
+        # Normalize and threshold - LOWERED threshold for better detection
+        texture_threshold = self.config.get('texture_threshold', 35)
         texture = cv2.normalize(texture, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        _, thresh = cv2.threshold(texture, 50, 255, cv2.THRESH_BINARY)
+        _, thresh = cv2.threshold(texture, texture_threshold, 255, cv2.THRESH_BINARY)
         
         # Apply exclusion mask
         thresh = cv2.bitwise_and(thresh, cv2.bitwise_not(exclusion_mask))
@@ -219,9 +221,9 @@ class ImageDetector:
         - Icons with thin strokes on uniform backgrounds
         
         Strategy:
-        1. Use adaptive thresholding (works well for line art)
+        1. Use MULTIPLE adaptive thresholding variations (works well for line art)
         2. Find contours of reasonable size
-        3. Filter by shape characteristics
+        3. Filter by shape characteristics with RELAXED parameters
         """
         # Convert to grayscale
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -229,16 +231,30 @@ class ImageDetector:
         # Apply Gaussian blur to reduce noise
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         
-        # Adaptive thresholding - good for line art on varying backgrounds
+        # IMPROVED: Try MULTIPLE adaptive thresholding variations
+        # This catches icons with different stroke widths and contrasts
         thresh1 = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                         cv2.THRESH_BINARY_INV, 11, 2)
         
-        # Also try with larger block size for thicker icons
         thresh2 = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                        cv2.THRESH_BINARY_INV, 15, 2)
+        
+        thresh3 = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                         cv2.THRESH_BINARY_INV, 21, 3)
         
-        # Combine both thresholds
+        # NEW: Add mean-based adaptive threshold for different lighting
+        thresh4 = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_MEAN_C,
+                                        cv2.THRESH_BINARY_INV, 15, 3)
+        
+        # NEW: Also try with smaller C value for lower contrast icons
+        thresh5 = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                        cv2.THRESH_BINARY_INV, 11, 1)
+        
+        # Combine ALL thresholds to catch maximum variations
         combined = cv2.bitwise_or(thresh1, thresh2)
+        combined = cv2.bitwise_or(combined, thresh3)
+        combined = cv2.bitwise_or(combined, thresh4)
+        combined = cv2.bitwise_or(combined, thresh5)
         
         # Apply exclusion mask
         combined = cv2.bitwise_and(combined, cv2.bitwise_not(exclusion_mask))
@@ -255,8 +271,10 @@ class ImageDetector:
         contours, hierarchy = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         bboxes = []
-        min_icon_size = self.config.get('min_icon_size', 30)
+        min_icon_size = self.config.get('min_icon_size', 20)
         max_icon_size = self.config.get('max_icon_size', 150)
+        min_fill_ratio = self.config.get('min_fill_ratio', 0.05)  # LOWERED from 0.1
+        min_contrast = self.config.get('min_contrast_std', 5)  # LOWERED from 10
         
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
@@ -272,20 +290,20 @@ class ImageDetector:
             if aspect_ratio > 4.0:
                 continue  # Too elongated
             
-            # Check if it has reasonable fill (not just noise)
+            # Check if it has reasonable fill (not just noise) - RELAXED threshold
             area = cv2.contourArea(contour)
             bbox_area = w * h
             fill_ratio = area / bbox_area if bbox_area > 0 else 0
             
-            if fill_ratio < 0.1:
+            if fill_ratio < min_fill_ratio:
                 continue  # Too sparse, likely noise
             
-            # Additional check: verify there's actual content in the region
+            # Additional check: verify there's actual content in the region - RELAXED threshold
             region = gray[y:y+h, x:x+w]
             if region.size > 0:
                 # Check contrast - icons should have some contrast
                 region_std = np.std(region)
-                if region_std < 10:
+                if region_std < min_contrast:
                     continue  # Too uniform, not an icon
             
             bboxes.append(BoundingBox(x, y, w, h, label='icon'))
@@ -301,9 +319,28 @@ class ImageDetector:
         # Merge overlapping boxes
         merged = merge_overlapping_boxes(candidates, iou_threshold=0.3)
         
+        # Apply bbox padding to capture anti-aliasing and feathered edges
+        bbox_padding = self.config.get('bbox_padding', 6)
+        img_h, img_w = image.shape[:2]
+        
+        padded_bboxes = []
+        for bbox in merged:
+            # Expand bbox by padding, clamping to image boundaries
+            new_x = max(0, bbox.x - bbox_padding)
+            new_y = max(0, bbox.y - bbox_padding)
+            new_x2 = min(img_w, bbox.x2 + bbox_padding)
+            new_y2 = min(img_h, bbox.y2 + bbox_padding)
+            new_w = new_x2 - new_x
+            new_h = new_y2 - new_y
+            
+            padded_bbox = BoundingBox(new_x, new_y, new_w, new_h, label=bbox.label)
+            padded_bboxes.append(padded_bbox)
+        
+        logger.debug(f"Applied {bbox_padding}px padding to {len(padded_bboxes)} bboxes")
+        
         # Create ImageElement objects with extracted data
         image_elements = []
-        for bbox in merged:
+        for bbox in padded_bboxes:
             # Extract image data
             img_data = image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
             

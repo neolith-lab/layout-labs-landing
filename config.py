@@ -24,8 +24,15 @@ IMAGE_PROCESSING = {
     'container_edge_simplicity_threshold': 0.4,  # RAISED from 0.3
     'container_fill_ratio_threshold': 0.70,  # NEW: 70% uniform fill = likely container
     'container_score_threshold': 35,  # LOWERED from 50 - stricter filtering
-    # Edge detection thresholds
-    'edge_density_threshold': 15,  # LOWERED from 30 - catch simpler icons
+    # Edge detection thresholds - LOWERED for better sensitivity
+    'edge_density_threshold': 10,  # LOWERED from 15 - catch simpler icons
+    # Detection method thresholds - LOWERED for better sensitivity (Plan A)
+    'color_variance_threshold': 75,  # LOWERED from 100 - detect lower variance icons
+    'texture_threshold': 35,  # LOWERED from 50 - detect smoother icons
+    'min_contrast_std': 5,  # LOWERED from 10 - detect lower contrast icons
+    'min_fill_ratio': 0.05,  # LOWERED from 0.1 - detect sparser icons
+    # Bounding box expansion (Plan A - Issue 2)
+    'bbox_padding': 6,  # pixels to expand each bbox to capture anti-aliasing
 }
 
 # Shape Detection Settings

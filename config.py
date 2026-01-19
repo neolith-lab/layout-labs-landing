@@ -19,7 +19,7 @@ IMAGE_PROCESSING = {
     'max_icon_size': 150,  # NEW: maximum size for line icon detection
     'blur_kernel_size': 5,
     # Container filtering heuristics - UPDATED thresholds
-    'container_size_threshold': 0.05,  # LOWERED to 0.05 - Images > 5% of total area likely containers
+    'container_size_threshold': 0.02,  # LOWERED to 0.02 - Images > 2% of total area likely containers
     'container_min_unique_colors': 1500,  # RAISED to 1500 - containers can have gradients + embedded icons
     'container_edge_simplicity_threshold': 0.4,  # RAISED from 0.3
     'container_fill_ratio_threshold': 0.70,  # NEW: 70% uniform fill = likely container

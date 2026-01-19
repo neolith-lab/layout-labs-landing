@@ -9,7 +9,7 @@ from typing import List, Tuple, Optional, Dict
 import logging
 from dataclasses import dataclass
 
-from utils import BoundingBox, save_debug_image, calculate_dominant_color
+from utils import BoundingBox, save_debug_image, calculate_dominant_color, inpaint_image
 from config import IMAGE_PROCESSING, DEBUG
 
 logger = logging.getLogger(__name__)
@@ -366,23 +366,23 @@ class ImageDetector:
         # Track used label positions to avoid overlap
         used_regions = []
         
-        def find_label_position(bbox, label_height=50):
+        def find_label_position(bbox, label_height=65):
             """Find non-overlapping position for label"""
             # Try positions in order: top, bottom, left, right
             positions = [
                 (bbox.x, bbox.y - label_height),  # Top
                 (bbox.x, bbox.y2 + 5),            # Bottom
-                (bbox.x - 240, bbox.y),           # Left (wider for 3 lines)
+                (bbox.x - 260, bbox.y),           # Left (wider for 4 lines)
                 (bbox.x2 + 5, bbox.y),            # Right
             ]
             
             for x, y in positions:
                 # Clamp to image bounds
                 y = max(45, min(y, image.shape[0] - label_height))
-                x = max(0, min(x, image.shape[1] - 240))
+                x = max(0, min(x, image.shape[1] - 260))
                 
                 # Check if this position overlaps with existing labels
-                proposed_region = (x, y, x + 240, y + label_height)
+                proposed_region = (x, y, x + 260, y + label_height)
                 
                 overlaps = False
                 for used in used_regions:
@@ -399,7 +399,7 @@ class ImageDetector:
             
             # Fallback: use original position even if overlapping
             x, y = bbox.x, max(45, bbox.y - label_height)
-            used_regions.append((x, y, x + 240, y + label_height))
+            used_regions.append((x, y, x + 260, y + label_height))
             return x, y
         
         # Draw kept images in RED (these will be in final SVG)
@@ -414,37 +414,44 @@ class ImageDetector:
             debug_info = getattr(element, 'debug_info', {})
             area_ratio = debug_info.get('area_ratio', 0)
             size_score = debug_info.get('size_score', 0)
+            color_score = debug_info.get('color_score', 0)
+            edge_score = debug_info.get('edge_score', 0)
+            fill_score = debug_info.get('fill_score', 0)
             edge_complexity = debug_info.get('edge_complexity', 0)
+            edge_density = debug_info.get('edge_density', 0)
+            edge_variance = debug_info.get('edge_variance', 0)
             unique_colors = debug_info.get('unique_colors', 0)
+            fill_ratio = debug_info.get('fill_ratio', 0)
             
             # If not in debug_info, calculate for display
             if unique_colors == 0:
                 unique_colors = len(np.unique(element.image_data.reshape(-1, 3), axis=0))
+            if fill_ratio == 0:
+                fill_ratio = self._calculate_fill_ratio(element.image_data)
             
-            # Calculate fill ratio for display
-            fill_ratio = self._calculate_fill_ratio(element.image_data)
+            # Extract total score from label if available
+            total_score = bbox.label.split(':')[1] if ':' in bbox.label else '?'
             
-            # Extract score from label if available
-            score = bbox.label.split(':')[1] if ':' in bbox.label else '?'
-            
-            # Add detailed label with all metrics
-            label_type = "Photo" if element.is_photo else "Icon"
-            label = f"KEEP #{i+1}: {label_type}"
-            size_label = f"{bbox.w}x{bbox.h} | clr:{unique_colors} | fill:{fill_ratio:.0%} | s:{score}"
-            metrics_label = f"area:{area_ratio:.1%} | size_s:{size_score} | edge:{edge_complexity:.2f}"
+            # Build annotation with 4 lines showing all scores
+            line1 = f"{bbox.w}x{bbox.h} | clr:{unique_colors} | fill:{fill_ratio:.0%} | TOTAL:{total_score}"
+            line2 = f"Size:{size_score} | Color:{color_score} | Edge:{edge_score} | Fill:{fill_score}"
+            line3 = f"area:{area_ratio:.1%} | edge_cmplx:{edge_complexity:.3f}"
+            line4 = f"edge_dens:{edge_density:.3f} | edge_var:{edge_variance:.3f}"
             
             # Find non-overlapping position for label
-            label_x, label_y = find_label_position(bbox, label_height=50)
+            label_x, label_y = find_label_position(bbox, label_height=65)
             
-            # Draw label background (taller for 3 lines)
-            cv2.rectangle(debug_img, (label_x, label_y), (label_x + 240, label_y + 50), color, -1)
+            # Draw label background (taller for 4 lines)
+            cv2.rectangle(debug_img, (label_x, label_y), (label_x + 260, label_y + 65), color, -1)
             
-            # Draw labels (3 lines)
-            cv2.putText(debug_img, label, (label_x + 2, label_y + 15),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
-            cv2.putText(debug_img, size_label, (label_x + 2, label_y + 30),
+            # Draw labels (4 lines)
+            cv2.putText(debug_img, line1, (label_x + 2, label_y + 14),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1)
-            cv2.putText(debug_img, metrics_label, (label_x + 2, label_y + 45),
+            cv2.putText(debug_img, line2, (label_x + 2, label_y + 29),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1)
+            cv2.putText(debug_img, line3, (label_x + 2, label_y + 44),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1)
+            cv2.putText(debug_img, line4, (label_x + 2, label_y + 59),
                        cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1)
         
         # Draw filtered images in GREEN (likely containers)
@@ -459,53 +466,170 @@ class ImageDetector:
             debug_info = getattr(element, 'debug_info', {})
             area_ratio = debug_info.get('area_ratio', 0)
             size_score = debug_info.get('size_score', 0)
+            color_score = debug_info.get('color_score', 0)
+            edge_score = debug_info.get('edge_score', 0)
+            fill_score = debug_info.get('fill_score', 0)
             edge_complexity = debug_info.get('edge_complexity', 0)
+            edge_density = debug_info.get('edge_density', 0)
+            edge_variance = debug_info.get('edge_variance', 0)
             unique_colors = debug_info.get('unique_colors', 0)
+            fill_ratio = debug_info.get('fill_ratio', 0)
             
             # If not in debug_info, calculate for display
             if unique_colors == 0:
                 unique_colors = len(np.unique(element.image_data.reshape(-1, 3), axis=0))
+            if fill_ratio == 0:
+                fill_ratio = self._calculate_fill_ratio(element.image_data)
             
-            # Calculate fill ratio for display
-            fill_ratio = self._calculate_fill_ratio(element.image_data)
+            # Extract total score from label
+            total_score = bbox.label.split(':')[1] if ':' in bbox.label else '?'
             
-            # Extract score from label
-            score = bbox.label.split(':')[1] if ':' in bbox.label else '?'
+            # Build annotation with 4 lines showing all scores
+            line1 = f"{bbox.w}x{bbox.h} | clr:{unique_colors} | fill:{fill_ratio:.0%} | TOTAL:{total_score}"
+            line2 = f"Size:{size_score} | Color:{color_score} | Edge:{edge_score} | Fill:{fill_score}"
+            line3 = f"area:{area_ratio:.1%} | edge_cmplx:{edge_complexity:.3f}"
+            line4 = f"edge_dens:{edge_density:.3f} | edge_var:{edge_variance:.3f}"
             
-            # Add detailed label with all metrics
-            label = f"FILTER #{i+1}: Container"
-            size_label = f"{bbox.w}x{bbox.h} | clr:{unique_colors} | fill:{fill_ratio:.0%} | s:{score}"
-            metrics_label = f"area:{area_ratio:.1%} | size_s:{size_score} | edge:{edge_complexity:.2f}"
+            # Find non-overlapping position for label
+            label_x, label_y = find_label_position(bbox, label_height=65)
+            
+            # Draw label background (taller for 4 lines)
+            cv2.rectangle(debug_img, (label_x, label_y), (label_x + 260, label_y + 65), color, -1)
+            
+            # Draw labels (4 lines)
+            cv2.putText(debug_img, line1, (label_x + 2, label_y + 14),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 0), 1)
+            cv2.putText(debug_img, line2, (label_x + 2, label_y + 29),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 0), 1)
+            cv2.putText(debug_img, line3, (label_x + 2, label_y + 44),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 0), 1)
+            cv2.putText(debug_img, line4, (label_x + 2, label_y + 59),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 0), 1)
+        
+        save_debug_image(debug_img, '03_image_detection.png', DEBUG.get('output_dir', './debug_output'))
+        
+        # Also save Canny edge debug visualization
+        self._save_canny_edge_debug(image, kept_images, filtered_images)
+    
+    def _save_canny_edge_debug(self, image: np.ndarray,
+                               kept_images: List[ImageElement],
+                               filtered_images: List[ImageElement]):
+        """
+        Save a debug visualization showing Canny edge detection with edge metrics annotated.
+        
+        This shows the edge map of the full image with bounding boxes for each detected
+        element and their edge_density, edge_variance, edge_complexity, and edge_score values.
+        """
+        # Convert full image to grayscale and compute Canny edges
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 50, 150)
+        
+        # Convert edges to 3-channel BGR for annotation (white edges on black)
+        debug_img = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+        
+        # Add title
+        title = "Canny Edge Detection - Edge Metrics per Region"
+        cv2.putText(debug_img, title, (10, 25),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        
+        # Track used label positions to avoid overlap
+        used_regions = []
+        
+        def find_label_position(bbox, label_height=50):
+            """Find non-overlapping position for label"""
+            positions = [
+                (bbox.x, bbox.y - label_height),  # Top
+                (bbox.x, bbox.y2 + 5),            # Bottom
+                (bbox.x - 220, bbox.y),           # Left
+                (bbox.x2 + 5, bbox.y),            # Right
+            ]
+            
+            for x, y in positions:
+                y = max(35, min(y, image.shape[0] - label_height))
+                x = max(0, min(x, image.shape[1] - 220))
+                
+                proposed_region = (x, y, x + 220, y + label_height)
+                
+                overlaps = False
+                for used in used_regions:
+                    if not (proposed_region[2] < used[0] or
+                           proposed_region[0] > used[2] or
+                           proposed_region[3] < used[1] or
+                           proposed_region[1] > used[3]):
+                        overlaps = True
+                        break
+                
+                if not overlaps:
+                    used_regions.append(proposed_region)
+                    return x, y
+            
+            x, y = bbox.x, max(35, bbox.y - label_height)
+            used_regions.append((x, y, x + 220, y + label_height))
+            return x, y
+        
+        all_elements = kept_images + filtered_images
+        
+        for element in all_elements:
+            bbox = element.bbox
+            debug_info = getattr(element, 'debug_info', {})
+            
+            # Determine color based on kept vs filtered
+            is_kept = element in kept_images
+            color = (0, 0, 255) if is_kept else (0, 255, 0)  # RED for kept, GREEN for filtered
+            
+            # Draw bounding box on edge image
+            cv2.rectangle(debug_img, (bbox.x, bbox.y), (bbox.x2, bbox.y2), color, 2)
+            
+            # Get edge metrics
+            edge_complexity = debug_info.get('edge_complexity', 0)
+            edge_density = debug_info.get('edge_density', 0)
+            edge_variance = debug_info.get('edge_variance', 0)
+            edge_score = debug_info.get('edge_score', 0)
+            
+            # Build annotation lines
+            status = "KEPT" if is_kept else "FILTERED"
+            line1 = f"{status} {bbox.w}x{bbox.h}"
+            line2 = f"dens:{edge_density:.4f} | var:{edge_variance:.3f}"
+            line3 = f"cmplx:{edge_complexity:.4f} | Score:{edge_score}"
             
             # Find non-overlapping position for label
             label_x, label_y = find_label_position(bbox, label_height=50)
             
-            # Draw label background (taller for 3 lines)
-            cv2.rectangle(debug_img, (label_x, label_y), (label_x + 240, label_y + 50), color, -1)
+            # Draw label background
+            cv2.rectangle(debug_img, (label_x, label_y), (label_x + 220, label_y + 50), color, -1)
             
             # Draw labels (3 lines)
-            cv2.putText(debug_img, label, (label_x + 2, label_y + 15),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 0), 1)
-            cv2.putText(debug_img, size_label, (label_x + 2, label_y + 30),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 0), 1)
-            cv2.putText(debug_img, metrics_label, (label_x + 2, label_y + 45),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 0), 1)
+            text_color = (255, 255, 255) if is_kept else (0, 0, 0)
+            cv2.putText(debug_img, line1, (label_x + 2, label_y + 14),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.38, text_color, 1)
+            cv2.putText(debug_img, line2, (label_x + 2, label_y + 30),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.38, text_color, 1)
+            cv2.putText(debug_img, line3, (label_x + 2, label_y + 46),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.38, text_color, 1)
         
-        save_debug_image(debug_img, '03_image_detection.png', DEBUG.get('output_dir', './debug_output'))
-    
+        # Add legend at bottom
+        legend_y = image.shape[0] - 30
+        cv2.putText(debug_img, "RED=Kept Images | GREEN=Filtered Containers | Edge values on INPAINTED regions",
+                   (10, legend_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+        
+        save_debug_image(debug_img, '03b_canny_edge_metrics.png', DEBUG.get('output_dir', './debug_output'))
+
     def _filter_container_like_images(self, image: np.ndarray,
                                       image_elements: List[ImageElement]) -> Tuple[List[ImageElement], List[ImageElement]]:
         """
         Filter out container-like detections using heuristics
         
         Heuristics (UPDATED - Rebalanced to total 100 points):
-        1. Size: > 5% of total image area → likely container (0-40 points) - HIGHEST WEIGHT
+        1. Size: > 2% of total image area → likely container (0-40 points) - HIGHEST WEIGHT
            - NEW: Minimum size 50x50 for containers (smaller = definitely not container)
         2. Color simplicity: < 1500 unique colors → likely container (0-10 points)
-           - NEW: Subtracts colors from nested images for accurate container color count
+           - NEW: Inpaints nested images first for accurate color count
            - NEW: Uses tolerance=5 to ignore anti-aliasing artifacts
         3. Edge simplicity: low edge complexity → likely container (0-20 points)
+           - NEW: Calculated on inpainted image (nested images removed)
+           - FIXED: Low edge density (fewer edges) = HIGH container score
         4. Fill ratio: > 70% uniform fill → likely container (0-30 points)
+           - NEW: Calculated on inpainted image (nested images removed)
         
         Total possible: 100 points
         Score ≥ 35 → Filter as container
@@ -519,7 +643,8 @@ class ImageDetector:
         edge_threshold = self.config.get('container_edge_simplicity_threshold', 0.4)
         fill_ratio_threshold = self.config.get('container_fill_ratio_threshold', 0.70)
         score_threshold = self.config.get('container_score_threshold', 35)
-        min_container_dimension = 50  # NEW: Minimum 50x50 to be considered a container
+        min_container_dimension = 50  # Minimum 50x50 to be considered a container
+        inpaint_radius = self.config.get('inpaint_radius', 5)
         
         kept_images = []
         filtered_images = []
@@ -540,19 +665,27 @@ class ImageDetector:
                 continue
             
             # Heuristic 1: Size check (0-40 points) - HIGHEST WEIGHT
+            # Size doesn't need inpainting - it's based on bbox area
             area_ratio = element.bbox.area / total_area
             debug_info['area_ratio'] = area_ratio
             if area_ratio > size_threshold:
                 # Larger regions get higher scores
-                # Formula: max 40 points at 18% area (threshold is 5%)
-                size_score = min(40, int((area_ratio - size_threshold) * 550))
+                # Formula: max 40 points at 12% area (threshold is 2%)
+                size_score = min(40, int((area_ratio - size_threshold) * 400))
                 container_score += size_score
                 debug_info['size_score'] = size_score
             
-            # Heuristic 2: Color uniformity (0-10 points) - REDUCED for balance
-            # NEW: Calculate unique colors excluding nested images
-            unique_colors = self._calculate_unique_colors_excluding_nested(
-                element, nested_info, image_elements
+            # Step 2: Get inpainted image data (nested images removed) for remaining heuristics
+            # This gives us the "true" container appearance without embedded content
+            element_idx = self._get_element_index(element, image_elements)
+            inpainted_data = self._get_inpainted_image_data(
+                element, element_idx, nested_info, image_elements, inpaint_radius
+            )
+            
+            # Heuristic 2: Color uniformity (0-10 points)
+            # Calculate unique colors on INPAINTED image
+            unique_colors = self._count_unique_colors_with_tolerance(
+                inpainted_data.reshape(-1, 3), tolerance=5
             )
             debug_info['unique_colors'] = unique_colors
             if unique_colors < min_colors_threshold:
@@ -560,18 +693,22 @@ class ImageDetector:
                 container_score += color_score
                 debug_info['color_score'] = color_score
             
-            # Heuristic 3: Edge simplicity (0-20 points) - REDUCED for balance
-            # Containers have clean, simple borders - this is a strong signal
-            edge_complexity = self._calculate_edge_complexity(element.image_data)
+            # Heuristic 3: Edge simplicity (0-20 points)
+            # Calculate edge complexity on INPAINTED image (get detailed values)
+            edge_complexity, edge_density, edge_variance = self._calculate_edge_complexity(
+                inpainted_data, return_details=True
+            )
             debug_info['edge_complexity'] = edge_complexity
+            debug_info['edge_density'] = edge_density
+            debug_info['edge_variance'] = edge_variance
             if edge_complexity < edge_threshold:
                 edge_score = int(20 * (1 - edge_complexity / edge_threshold))
                 container_score += edge_score
                 debug_info['edge_score'] = edge_score
             
-            # Heuristic 4: Fill ratio (0-30 points) - REDUCED for balance
-            # Containers have large uniform areas (70%+ same color)
-            fill_ratio = self._calculate_fill_ratio(element.image_data)
+            # Heuristic 4: Fill ratio (0-30 points)
+            # Calculate fill ratio on INPAINTED image
+            fill_ratio = self._calculate_fill_ratio(inpainted_data)
             debug_info['fill_ratio'] = fill_ratio
             if fill_ratio > fill_ratio_threshold:
                 fill_score = int(30 * ((fill_ratio - fill_ratio_threshold) / (1.0 - fill_ratio_threshold)))
@@ -628,6 +765,82 @@ class ImageDetector:
                 nested_info[i] = children
                 
         return nested_info
+    
+    def _get_element_index(self, element: ImageElement, all_elements: List[ImageElement]) -> Optional[int]:
+        """Get the index of an element in the list"""
+        for i, el in enumerate(all_elements):
+            if el is element:
+                return i
+        return None
+    
+    def _get_inpainted_image_data(
+        self,
+        element: ImageElement,
+        element_idx: Optional[int],
+        nested_info: Dict[int, List[int]],
+        all_elements: List[ImageElement],
+        inpaint_radius: int = 5
+    ) -> np.ndarray:
+        """
+        Get image data with nested images inpainted (removed and filled).
+        
+        This provides the "true" appearance of a container without embedded icons/images.
+        Uses the same Telea inpainting method as text removal.
+        
+        Args:
+            element: The parent element
+            element_idx: Index of the element in all_elements
+            nested_info: Dictionary of parent -> [children] relationships
+            all_elements: All detected image elements
+            inpaint_radius: Radius for inpainting algorithm
+            
+        Returns:
+            Image data with nested images inpainted
+        """
+        # If no nested children, return original image data
+        if element_idx is None or element_idx not in nested_info:
+            return element.image_data.copy()
+        
+        # Create a copy to work with
+        image_data = element.image_data.copy()
+        h, w = image_data.shape[:2]
+        
+        # Create a mask for inpainting (255 = areas to inpaint)
+        inpaint_mask = np.zeros((h, w), dtype=np.uint8)
+        
+        # Mark all nested child regions in the mask
+        parent_bbox = element.bbox
+        for child_idx in nested_info[element_idx]:
+            child = all_elements[child_idx]
+            child_bbox = child.bbox
+            
+            # Convert child bbox to parent-relative coordinates
+            rel_x = child_bbox.x - parent_bbox.x
+            rel_y = child_bbox.y - parent_bbox.y
+            rel_x2 = rel_x + child_bbox.w
+            rel_y2 = rel_y + child_bbox.h
+            
+            # Clamp to valid range
+            rel_x = max(0, rel_x)
+            rel_y = max(0, rel_y)
+            rel_x2 = min(w, rel_x2)
+            rel_y2 = min(h, rel_y2)
+            
+            # Mark this region for inpainting
+            inpaint_mask[rel_y:rel_y2, rel_x:rel_x2] = 255
+        
+        # If no regions to inpaint, return original
+        if np.count_nonzero(inpaint_mask) == 0:
+            return image_data
+        
+        # Inpaint using Telea method (same as text inpainting)
+        try:
+            inpainted = inpaint_image(image_data, inpaint_mask, method='telea', radius=inpaint_radius)
+            logger.debug(f"Inpainted {len(nested_info[element_idx])} nested regions in element {element_idx}")
+            return inpainted
+        except Exception as e:
+            logger.warning(f"Inpainting failed: {e}, using original image")
+            return image_data
     
     def _calculate_unique_colors_excluding_nested(
         self, 
@@ -806,14 +1019,28 @@ class ImageDetector:
         
         return kept_images, filtered_images
     
-    def _calculate_edge_complexity(self, image_data: np.ndarray) -> float:
+    def _calculate_edge_complexity(self, image_data: np.ndarray, return_details: bool = False):
         """
         Calculate edge complexity metric (0-1 range)
         Lower values = simpler edges (like containers)
         Higher values = complex edges (like photos/icons)
+        
+        FIXED: Low edge density (fewer edges) now correctly contributes to LOW complexity
+        
+        Components:
+        - Edge density: % of pixels that are edges (lower = simpler = container)
+        - Edge variance: How spread out edges are (lower = borders only = container)
+        
+        Args:
+            image_data: Image to analyze
+            return_details: If True, returns (complexity, density, variance) tuple
+            
+        Returns:
+            If return_details=False: float (complexity)
+            If return_details=True: tuple (complexity, edge_density, edge_variance)
         """
         if image_data.size == 0:
-            return 0.0
+            return (0.0, 0.0, 0.0) if return_details else 0.0
         
         # Convert to grayscale
         if len(image_data.shape) == 3:
@@ -824,7 +1051,7 @@ class ImageDetector:
         # Detect edges
         edges = cv2.Canny(gray, 50, 150)
         
-        # Calculate edge density
+        # Calculate edge density (what % of pixels are edges)
         edge_pixels = np.count_nonzero(edges)
         total_pixels = edges.shape[0] * edges.shape[1]
         edge_density = edge_pixels / total_pixels
@@ -846,8 +1073,13 @@ class ImageDetector:
         else:
             edge_variance = 0.0
         
-        # Combine metrics: density + variance
-        # High complexity = high density AND high variance
+        # Combine metrics: BOTH should be low for containers
+        # Low edge density (fewer edges) = simple container
+        # Low edge variance (edges at borders) = simple container
+        # Average them - both contribute equally
         complexity = (edge_density + edge_variance) / 2
+        complexity = edge_density
         
+        if return_details:
+            return (complexity, edge_density, edge_variance)
         return complexity

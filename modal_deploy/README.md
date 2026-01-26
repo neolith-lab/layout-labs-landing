@@ -200,5 +200,3 @@ The function is optimized to minimize costs by:
 - Returning only necessary data
 - Caching the container image
 
-
-TO RUN: python cli.py input2.jpg -o output.svg

@@ -294,4 +294,5 @@ Built with modern computer vision and OCR technologies to make infographic editi
 
 ---
 
-**Made with ❤️ for the design and data visualization community**
+
+TO RUN: python cli.py input2.jpg -o output.svg

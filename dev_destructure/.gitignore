@@ -49,10 +49,10 @@ htmlcov/
 .tox/
 
 # Generated files
-*.svg
-*.png
-*.jpg
-*.jpeg
+# *.svg
+# *.png
+# *.jpg
+# *.jpeg
 output_svg/
 output_svgs/
 

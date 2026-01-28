@@ -40,7 +40,7 @@ image = (
         "easyocr>=1.7.0",
         "requests>=2.31.0",
         "boto3>=1.28.0",  # Added for S3 support
-    ).add_local_dir("../dev_destructure", remote_path="/root/dev_destructure")
+    ).add_local_dir("./logic", remote_path="/root/dev_destructure")
 )
 
 # # Mount the source code
@@ -53,7 +53,6 @@ image = (
 @app.function(
     image=image,
     secrets=[aws_secret],  # Add AWS credentials
-    # mounts=[code_mount],
     timeout=600,  # 10 minutes timeout
     cpu=4,  # Use 4 CPUs for faster processing
     memory=8192,  # 8GB RAM for image processing
@@ -62,28 +61,19 @@ image = (
 def convert_image_to_svg(
     image_url: str = None,
     image_bytes: bytes = None,
-    output_filename: str = "output.svg",
-    debug: bool = True,  # Default to True for deconstruction
-    ocr_confidence: int = 60,
-    convert_images: bool = False,
-    return_json_only: bool = True,  # Default to True - return JSON with S3 URLs
     s3_bucket: str = None,  # S3 bucket for storing extracted elements
 ) -> dict:
     """
-    Convert a raster infographic image to SVG and return deconstruction data
+    Convert a raster infographic image and extract all elements to S3.
+    Returns JSON with S3 URLs for all extracted elements.
     
     Args:
         image_url: URL of the input image (preferred method)
         image_bytes: Input image as bytes (alternative to image_url)
-        output_filename: Name for output SVG file
-        debug: Enable debug mode (saves intermediate steps and extracts elements)
-        ocr_confidence: Minimum OCR confidence threshold (0-100)
-        convert_images: Convert embedded images to SVG (experimental)
-        return_json_only: Return only JSON with S3 URLs (no SVG content or debug images)
         s3_bucket: S3 bucket name for storing extracted elements (defaults to env var)
     
     Returns:
-        Dictionary with extraction data, statistics, and optionally SVG content
+        Dictionary with extraction data and statistics (all elements uploaded to S3)
     """
     import sys
     import tempfile
@@ -96,29 +86,35 @@ def convert_image_to_svg(
     sys.path.insert(0, "/root/dev_destructure")
     
     from raster_to_svg import RasterToSVGConverter
-    from config import DEBUG, OCR_CONFIG
     
     # Get S3 bucket from parameter or environment
     if s3_bucket is None:
         s3_bucket = os.environ.get('AWS_S3_BUCKET', 'raster-to-svg-extractions')
     
-    # Configure settings
-    if debug:
-        DEBUG['save_intermediate_steps'] = True
-        DEBUG['output_dir'] = '/tmp/debug_output'
-    
-    OCR_CONFIG['min_confidence'] = ocr_confidence
-    
-    print(f"Starting conversion with debug={debug}, ocr_confidence={ocr_confidence}, return_json_only={return_json_only}")
-    print(f"S3 Bucket: {s3_bucket}")
+    print(f"Starting conversion with S3 bucket: {s3_bucket}")
     
     # Get image bytes from URL if provided
     if image_url:
         print(f"Downloading image from: {image_url}")
-        response = requests.get(image_url, timeout=30)
+        
+        # Add headers to handle various URL types
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'image/png,image/jpeg,image/*,*/*'
+        }
+        response = requests.get(image_url, timeout=30, headers=headers, allow_redirects=True)
         response.raise_for_status()
         image_bytes = response.content
         print(f"Downloaded {len(image_bytes)} bytes")
+        
+        # Check if content is actually an image
+        content_type = response.headers.get('content-type', '')
+        if 'html' in content_type.lower():
+            raise ValueError(
+                f"URL returned HTML instead of an image (content-type: {content_type}). "
+                f"Please use a direct image URL. For filebin.net, try downloading the file "
+                f"and uploading it to a proper image host like Imgur, or use the raw file URL."
+            )
     elif image_bytes is None:
         raise ValueError("Either image_url or image_bytes must be provided")
     
@@ -127,61 +123,40 @@ def convert_image_to_svg(
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     
     if image is None:
-        raise ValueError("Failed to decode image")
+        # Provide helpful error message
+        content_preview = image_bytes[:100].decode('utf-8', errors='ignore')
+        if content_preview.startswith('<!DOCTYPE') or content_preview.startswith('<html'):
+            raise ValueError(
+                "Failed to decode image - URL returned HTML instead of image data. "
+                "Please use a direct image URL (e.g., from Imgur, your own S3, or a CDN)."
+            )
+        raise ValueError(
+            f"Failed to decode image - invalid image format. "
+            f"Downloaded {len(image_bytes)} bytes. "
+            f"Make sure the URL points directly to an image file (PNG, JPG, etc.)"
+        )
     
     print(f"Image loaded: {image.shape[1]}x{image.shape[0]} pixels")
     
-    # Create temporary files for input and output
+    # Create temporary file for input
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_input:
         cv2.imwrite(tmp_input.name, image)
         tmp_input_path = tmp_input.name
     
-    with tempfile.NamedTemporaryFile(suffix='.svg', delete=False) as tmp_output:
-        tmp_output_path = tmp_output.name
-    
     try:
-        # Create converter with S3 support
-        converter = RasterToSVGConverter(s3_bucket=s3_bucket if debug else None)
+        # Create converter with S3 support (no SVG generation)
+        converter = RasterToSVGConverter(s3_bucket=s3_bucket)
         result = converter.convert(
             tmp_input_path,
-            tmp_output_path,
-            convert_images_to_svg=convert_images
+            generate_svg=False  # JSON-only mode, no SVG
         )
         
-        # Prepare response
+        # Return extraction data with S3 URLs
         response = {
             'success': True,
             'statistics': result['statistics'],
+            'extraction_data': result['extraction_data']
         }
-        
-        if return_json_only:
-            # Return JSON data with S3 URLs only
-            # Read the combined extraction JSON if it exists
-            json_path = os.path.join(DEBUG.get('output_dir', '/tmp/debug_output'), 'combined_extraction_data.json')
-            if os.path.exists(json_path):
-                import json
-                with open(json_path, 'r') as f:
-                    extraction_data = json.load(f)
-                response['extraction_data'] = extraction_data
-            else:
-                response['extraction_data'] = None
-                print("Warning: Combined extraction JSON not found")
-        else:
-            # Include SVG content
-            with open(tmp_output_path, 'r') as f:
-                svg_content = f.read()
-            response['svg_content'] = svg_content
-            
-            # Include debug images if available
-            response['debug_images'] = {}
-            if debug and DEBUG.get('save_intermediate_steps', False):
-                debug_dir = DEBUG.get('output_dir', '/tmp/debug_output')
-                if os.path.exists(debug_dir):
-                    for filename in os.listdir(debug_dir):
-                        if filename.endswith(('.png', '.jpg')):
-                            filepath = os.path.join(debug_dir, filename)
-                            with open(filepath, 'rb') as f:
-                                response['debug_images'][filename] = f.read()
         
         print(f"Conversion complete: {result['statistics']}")
         return response
@@ -190,219 +165,91 @@ def convert_image_to_svg(
         # Cleanup
         if os.path.exists(tmp_input_path):
             os.unlink(tmp_input_path)
-        if os.path.exists(tmp_output_path):
-            os.unlink(tmp_output_path)
-
-
-@app.function(
-    image=image,
-    secrets=[aws_secret],  # Add AWS credentials for batch processing
-    timeout=1800,  # 30 minutes for batch
-    cpu=4,
-    memory=8192,
-)
-def convert_batch_images(
-    image_files: dict[str, bytes],
-    debug: bool = False,
-    ocr_confidence: int = 60,
-    convert_images: bool = False,
-) -> dict:
-    """
-    Convert multiple images to SVG in batch
-    
-    Args:
-        image_files: Dictionary mapping filenames to image bytes
-        debug: Enable debug mode
-        ocr_confidence: Minimum OCR confidence threshold
-        convert_images: Convert embedded images to SVG
-    
-    Returns:
-        Dictionary with results for each file
-    """
-    results = {
-        'total': len(image_files),
-        'successful': 0,
-        'failed': 0,
-        'details': []
-    }
-    
-    for filename, image_bytes in image_files.items():
-        print(f"\nProcessing {filename}...")
-        try:
-            result = convert_image_to_svg.local(
-                image_bytes=image_bytes,
-                output_filename=filename.replace('.png', '.svg').replace('.jpg', '.svg'),
-                debug=debug,
-                ocr_confidence=ocr_confidence,
-                convert_images=convert_images,
-            )
-            results['successful'] += 1
-            results['details'].append({
-                'file': filename,
-                'status': 'success',
-                'statistics': result['statistics']
-            })
-            print(f"✓ {filename} converted successfully")
-            
-        except Exception as e:
-            results['failed'] += 1
-            results['details'].append({
-                'file': filename,
-                'status': 'failed',
-                'error': str(e)
-            })
-            print(f"✗ {filename} failed: {e}")
-    
-    return results
 
 
 @app.local_entrypoint()
 def main(
     input_path: str = None,
     input_url: str = None,
-    output_path: str = "output.svg",
-    batch: bool = False,
-    pattern: str = "*.png",
-    debug: bool = False,
-    ocr_confidence: int = 60,
-    convert_images: bool = False,
+    s3_bucket: str = None,
 ):
     """
-    Local entrypoint for Modal CLI usage
+    Local entrypoint for Modal CLI usage - Returns JSON with S3 URLs
     
     Usage:
         # Single file from local path
-        modal run main.py --input-path input.png --output-path output.svg
+        modal run main.py --input-path input.png
         
         # Single file from URL
-        modal run main.py --input-url https://example.com/image.png --output-path output.svg
+        modal run main.py --input-url https://example.com/image.png
         
-        # Batch mode
-        modal run main.py --input-path ./images --output-path ./output --batch --pattern "*.png"
-        
-        # With debug
-        modal run main.py --input-path input.png --debug
+        # With custom S3 bucket
+        modal run main.py --input-path input.png --s3-bucket my-bucket
     """
-    import os
+    import json
     from pathlib import Path
     
     print(f"{'='*60}")
     print("RASTER TO SVG CONVERTER - Modal Deployment")
+    print("JSON Extraction Mode (No SVG Generation)")
     print(f"{'='*60}\n")
     
     if not input_path and not input_url:
         print("Error: Either --input-path or --input-url must be provided")
         return
     
-    if batch:
-        # Batch mode: process directory
-        input_dir = Path(input_path)
-        if not input_dir.is_dir():
-            print(f"Error: {input_path} is not a directory")
-            return
+    if input_url:
+        # URL mode
+        print(f"Processing image from URL: {input_url}\n")
         
-        # Find all matching files
-        image_files = {}
-        for file_path in input_dir.glob(pattern):
-            with open(file_path, 'rb') as f:
-                image_files[file_path.name] = f.read()
-        
-        if not image_files:
-            print(f"No files matching pattern '{pattern}' found in {input_path}")
-            return
-        
-        print(f"Found {len(image_files)} images to process\n")
-        
-        # Process in batch
-        results = convert_batch_images.remote(
-            image_files=image_files,
-            debug=debug,
-            ocr_confidence=ocr_confidence,
-            convert_images=convert_images,
+        # Convert on Modal
+        result = convert_image_to_svg.remote(
+            image_url=input_url,
+            s3_bucket=s3_bucket,
         )
-        
-        # Save SVG outputs
-        output_dir = Path(output_path)
-        output_dir.mkdir(parents=True, exist_ok=True)
-        
-        for detail in results['details']:
-            if detail['status'] == 'success':
-                # Note: In batch mode, we'd need to modify convert_batch_images 
-                # to return SVG content. For now, just report statistics.
-                print(f"\n✓ {detail['file']}: {detail['statistics']}")
-        
-        # Print summary
-        print(f"\n{'='*60}")
-        print("BATCH CONVERSION COMPLETE")
-        print(f"{'='*60}")
-        print(f"Total files:     {results['total']}")
-        print(f"Successful:      {results['successful']}")
-        print(f"Failed:          {results['failed']}")
-        
     else:
-        # Single file mode
-        if input_url:
-            # URL mode
-            print(f"Converting from URL '{input_url}' to '{output_path}'...\n")
-            
-            # Convert on Modal
-            result = convert_image_to_svg.remote(
-                image_url=input_url,
-                output_filename=output_path,
-                debug=debug,
-                ocr_confidence=ocr_confidence,
-                convert_images=convert_images,
-            )
-        else:
-            # Local file mode
-            input_file = Path(input_path)
-            if not input_file.exists():
-                print(f"Error: File not found: {input_path}")
-                return
-            
-            # Read input image
-            with open(input_file, 'rb') as f:
-                image_bytes = f.read()
-            
-            print(f"Converting '{input_path}' to '{output_path}'...\n")
-            
-            # Convert on Modal
-            result = convert_image_to_svg.remote(
-                image_bytes=image_bytes,
-                output_filename=output_path,
-                debug=debug,
-                ocr_confidence=ocr_confidence,
-                convert_images=convert_images,
-            )
+        # Local file mode
+        input_file = Path(input_path)
+        if not input_file.exists():
+            print(f"Error: File not found: {input_path}")
+            return
         
-        # Save SVG output
-        output_file = Path(output_path)
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file, 'w') as f:
-            f.write(result['svg_content'])
+        # Read input image
+        with open(input_file, 'rb') as f:
+            image_bytes = f.read()
         
-        # Save debug images if available
-        if debug and result['debug_images']:
-            debug_dir = output_file.parent / 'debug_output'
-            debug_dir.mkdir(exist_ok=True)
-            for filename, image_data in result['debug_images'].items():
-                debug_path = debug_dir / filename
-                with open(debug_path, 'wb') as f:
-                    f.write(image_data)
-            print(f"\nDebug images saved to: {debug_dir}")
+        print(f"Processing image: {input_path}\n")
         
-        # Print results
-        print(f"\n{'='*60}")
-        print("CONVERSION COMPLETE")
-        print(f"{'='*60}")
-        print(f"Output file:     {output_path}")
-        print(f"\nStatistics:")
-        stats = result['statistics']
-        print(f"  Text elements:       {stats['text_elements']}")
-        print(f"  Logos:               {stats['logos']}")
-        print(f"  Containers:          {stats['containers']}")
-        print(f"  Images (containers): {stats['images_in_containers']}")
-        print(f"  Images (standalone): {stats['standalone_images']}")
-        print(f"  Shape elements:      {stats['shapes']}")
-        print(f"  Dimensions:          {stats['dimensions'][0]}x{stats['dimensions'][1]}")
-        print(f"\n✓ Conversion completed successfully!")
+        # Convert on Modal
+        result = convert_image_to_svg.remote(
+            image_bytes=image_bytes,
+            s3_bucket=s3_bucket,
+        )
+    
+    # Print results
+    print(f"\n{'='*60}")
+    print("EXTRACTION COMPLETE")
+    print(f"{'='*60}")
+    print(f"\nStatistics:")
+    stats = result['statistics']
+    print(f"  Text elements:       {stats['text_elements']}")
+    print(f"  Logos:               {stats['logos']}")
+    print(f"  Containers:          {stats['containers']}")
+    print(f"  Images (containers): {stats['images_in_containers']}")
+    print(f"  Images (standalone): {stats['standalone_images']}")
+    print(f"  Dimensions:          {stats['dimensions'][0]}x{stats['dimensions'][1]}")
+    
+    # Print S3 info
+    if result['extraction_data']:
+        metadata = result['extraction_data']['metadata']
+        print(f"\nS3 Storage:")
+        print(f"  Bucket: {metadata.get('s3_bucket')}")
+        print(f"  Prefix: {metadata.get('s3_prefix')}")
+    
+    # Save extraction data to local JSON file
+    output_json = 'extraction_data.json'
+    with open(output_json, 'w') as f:
+        json.dump(result['extraction_data'], f, indent=2)
+    
+    print(f"\n✓ Extraction data saved to: {output_json}")
+    print(f"✓ All elements uploaded to S3!")

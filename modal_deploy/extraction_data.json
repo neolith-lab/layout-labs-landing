@@ -1,0 +1,2728 @@
+{
+  "metadata": {
+    "timestamp": "2026-01-28T05:04:23.342403",
+    "input_file": "/tmp/tmpvtderyyn.png",
+    "output_file": null,
+    "s3_bucket": "layoutlabs-temp",
+    "s3_prefix": "extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e"
+  },
+  "statistics": {
+    "text_elements": 45,
+    "logos": 0,
+    "containers": 9,
+    "images_in_containers": 21,
+    "standalone_images": 3,
+    "shapes": 0,
+    "dimensions": [
+      1024,
+      1024
+    ]
+  },
+  "stages": {
+    "text_detection": {
+      "stage": "text_detection",
+      "count": 45,
+      "elements": [
+        {
+          "id": 0,
+          "text": "CAR MANUFACTURING PROCESS",
+          "bbox": {
+            "x": 280,
+            "y": 56,
+            "width": 474,
+            "height": 50,
+            "x2": 754,
+            "y2": 106
+          },
+          "font": {
+            "family": "Arial",
+            "size": 50,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#0f3d66",
+          "confidence": 0.9912745994976185,
+          "num_lines": 1,
+          "cropped_image": "text_000.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_000.png"
+        },
+        {
+          "id": 1,
+          "text": "Process; Technology & Sustainablity",
+          "bbox": {
+            "x": 246,
+            "y": 100,
+            "width": 538,
+            "height": 65,
+            "x2": 784,
+            "y2": 165
+          },
+          "font": {
+            "family": "Arial",
+            "size": 50,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#0f406c",
+          "confidence": 0.7952360765027617,
+          "num_lines": 1,
+          "cropped_image": "text_001.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_001.png"
+        },
+        {
+          "id": 2,
+          "text": "DESIGN & DEVELOPMENT   TESTING & VALIDATION",
+          "bbox": {
+            "x": 50,
+            "y": 379,
+            "width": 308,
+            "height": 25,
+            "x2": 358,
+            "y2": 404
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#2d5572",
+          "confidence": 0.7132690541617193,
+          "num_lines": 1,
+          "cropped_image": "text_002.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_002.png"
+        },
+        {
+          "id": 3,
+          "text": "PARTS",
+          "bbox": {
+            "x": 404,
+            "y": 380,
+            "width": 46,
+            "height": 24,
+            "x2": 450,
+            "y2": 404
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#234c6c",
+          "confidence": 0.9995809038829945,
+          "num_lines": 1,
+          "cropped_image": "text_003.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_003.png"
+        },
+        {
+          "id": 4,
+          "text": "ASBOTICS",
+          "bbox": {
+            "x": 538,
+            "y": 380,
+            "width": 70,
+            "height": 24,
+            "x2": 608,
+            "y2": 404
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#28516e",
+          "confidence": 0.9970597724142228,
+          "num_lines": 1,
+          "cropped_image": "text_004.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_004.png"
+        },
+        {
+          "id": 5,
+          "text": "PAINTING",
+          "bbox": {
+            "x": 689,
+            "y": 381,
+            "width": 62,
+            "height": 20,
+            "x2": 751,
+            "y2": 401
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#2d526e",
+          "confidence": 0.9397044934416423,
+          "num_lines": 1,
+          "cropped_image": "text_005.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_005.png"
+        },
+        {
+          "id": 6,
+          "text": "QUALITY",
+          "bbox": {
+            "x": 832,
+            "y": 380,
+            "width": 58,
+            "height": 24,
+            "x2": 890,
+            "y2": 404
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#285270",
+          "confidence": 0.9207911099862995,
+          "num_lines": 1,
+          "cropped_image": "text_006.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_006.png"
+        },
+        {
+          "id": 7,
+          "text": "Virtual tests,30 models",
+          "bbox": {
+            "x": 53,
+            "y": 403,
+            "width": 146,
+            "height": 20,
+            "x2": 199,
+            "y2": 423
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#3a5f78",
+          "confidence": 0.7937580549045501,
+          "num_lines": 1,
+          "cropped_image": "text_007.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_007.png"
+        },
+        {
+          "id": 8,
+          "text": "Protatpes,",
+          "bbox": {
+            "x": 246,
+            "y": 401,
+            "width": 70,
+            "height": 27,
+            "x2": 316,
+            "y2": 428
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#385b74",
+          "confidence": 0.6920308263264755,
+          "num_lines": 1,
+          "cropped_image": "text_008.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_008.png"
+        },
+        {
+          "id": 9,
+          "text": "Manufacturine",
+          "bbox": {
+            "x": 383,
+            "y": 403,
+            "width": 90,
+            "height": 20,
+            "x2": 473,
+            "y2": 423
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#375972",
+          "confidence": 0.9999958340918067,
+          "num_lines": 1,
+          "cropped_image": "text_009.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_009.png"
+        },
+        {
+          "id": 10,
+          "text": "Rortis,",
+          "bbox": {
+            "x": 532,
+            "y": 402,
+            "width": 46,
+            "height": 24,
+            "x2": 578,
+            "y2": 426
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#2a5371",
+          "confidence": 0.4948939079118413,
+          "num_lines": 1,
+          "cropped_image": "text_010.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_010.png"
+        },
+        {
+          "id": 11,
+          "text": "Robotics; Bdi; Electrical",
+          "bbox": {
+            "x": 644,
+            "y": 402,
+            "width": 144,
+            "height": 24,
+            "x2": 788,
+            "y2": 426
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#3d5e79",
+          "confidence": 0.5106787824425659,
+          "num_lines": 1,
+          "cropped_image": "text_011.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_011.png"
+        },
+        {
+          "id": 12,
+          "text": "Diagnostics,",
+          "bbox": {
+            "x": 824,
+            "y": 402,
+            "width": 78,
+            "height": 26,
+            "x2": 902,
+            "y2": 428
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#3b5c78",
+          "confidence": 0.6877630014465643,
+          "num_lines": 1,
+          "cropped_image": "text_012.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_012.png"
+        },
+        {
+          "id": 13,
+          "text": "Safety Checks",
+          "bbox": {
+            "x": 238,
+            "y": 422,
+            "width": 90,
+            "height": 24,
+            "x2": 328,
+            "y2": 446
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#355a75",
+          "confidence": 0.9265620805761923,
+          "num_lines": 1,
+          "cropped_image": "text_013.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_013.png"
+        },
+        {
+          "id": 14,
+          "text": "Components",
+          "bbox": {
+            "x": 391,
+            "y": 427,
+            "width": 78,
+            "height": 18,
+            "x2": 469,
+            "y2": 445
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#40617a",
+          "confidence": 0.999871635948771,
+          "num_lines": 1,
+          "cropped_image": "text_014.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_014.png"
+        },
+        {
+          "id": 15,
+          "text": "Electrical",
+          "bbox": {
+            "x": 540,
+            "y": 422,
+            "width": 64,
+            "height": 24,
+            "x2": 604,
+            "y2": 446
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#47687e",
+          "confidence": 0.9999815659277589,
+          "num_lines": 1,
+          "cropped_image": "text_015.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_015.png"
+        },
+        {
+          "id": 16,
+          "text": "Standards",
+          "bbox": {
+            "x": 828,
+            "y": 422,
+            "width": 68,
+            "height": 24,
+            "x2": 896,
+            "y2": 446
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#3a5c75",
+          "confidence": 0.9006081294694924,
+          "num_lines": 1,
+          "cropped_image": "text_016.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_016.png"
+        },
+        {
+          "id": 17,
+          "text": "TECHNOLOGY IN",
+          "bbox": {
+            "x": 120,
+            "y": 556,
+            "width": 136,
+            "height": 30,
+            "x2": 256,
+            "y2": 586
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "bold",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#f4f8fb",
+          "confidence": 0.9343696592352851,
+          "num_lines": 1,
+          "cropped_image": "text_017.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_017.png"
+        },
+        {
+          "id": 18,
+          "text": "SUSTAINABILITY",
+          "bbox": {
+            "x": 424,
+            "y": 556,
+            "width": 144,
+            "height": 30,
+            "x2": 568,
+            "y2": 586
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#f9f5f7",
+          "confidence": 0.9996902469413863,
+          "num_lines": 1,
+          "cropped_image": "text_018.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_018.png"
+        },
+        {
+          "id": 19,
+          "text": "SPAIN'S AUTOMOTIVE",
+          "bbox": {
+            "x": 716,
+            "y": 556,
+            "width": 186,
+            "height": 30,
+            "x2": 902,
+            "y2": 586
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "bold",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#f4f6f7",
+          "confidence": 0.9685556222046099,
+          "num_lines": 1,
+          "cropped_image": "text_019.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_019.png"
+        },
+        {
+          "id": 20,
+          "text": "MANUFACTURING",
+          "bbox": {
+            "x": 114,
+            "y": 584,
+            "width": 150,
+            "height": 30,
+            "x2": 264,
+            "y2": 614
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "bold",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#f2f6f8",
+          "confidence": 0.9992434277218307,
+          "num_lines": 1,
+          "cropped_image": "text_020.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_020.png"
+        },
+        {
+          "id": 21,
+          "text": "IN AUTOMOTIVE",
+          "bbox": {
+            "x": 426,
+            "y": 582,
+            "width": 140,
+            "height": 32,
+            "x2": 566,
+            "y2": 614
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#f5f3f6",
+          "confidence": 0.8976600931938122,
+          "num_lines": 1,
+          "cropped_image": "text_021.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_021.png"
+        },
+        {
+          "id": 22,
+          "text": "INDUSTRY",
+          "bbox": {
+            "x": 764,
+            "y": 584,
+            "width": 92,
+            "height": 30,
+            "x2": 856,
+            "y2": 614
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "bold",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#f2f5f5",
+          "confidence": 0.9978077052381873,
+          "num_lines": 1,
+          "cropped_image": "text_022.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_022.png"
+        },
+        {
+          "id": 23,
+          "text": "Robotics: Precision assembly",
+          "bbox": {
+            "x": 114,
+            "y": 642,
+            "width": 192,
+            "height": 28,
+            "x2": 306,
+            "y2": 670
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#33516b",
+          "confidence": 0.9945075567876702,
+          "num_lines": 1,
+          "cropped_image": "text_023.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_023.png"
+        },
+        {
+          "id": 24,
+          "text": "Recycled Materials",
+          "bbox": {
+            "x": 423,
+            "y": 643,
+            "width": 131,
+            "height": 30,
+            "x2": 554,
+            "y2": 673
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#2d465d",
+          "confidence": 0.999540393506928,
+          "num_lines": 1,
+          "cropped_image": "text_024.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_024.png"
+        },
+        {
+          "id": 25,
+          "text": "2nd largest producer in",
+          "bbox": {
+            "x": 734,
+            "y": 644,
+            "width": 146,
+            "height": 31,
+            "x2": 880,
+            "y2": 675
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#3c5063",
+          "confidence": 0.774849816035026,
+          "num_lines": 1,
+          "cropped_image": "text_025.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_025.png"
+        },
+        {
+          "id": 26,
+          "text": "Europe",
+          "bbox": {
+            "x": 746,
+            "y": 669,
+            "width": 53,
+            "height": 28,
+            "x2": 799,
+            "y2": 697
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#445363",
+          "confidence": 0.99932299067367,
+          "num_lines": 1,
+          "cropped_image": "text_026.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_026.png"
+        },
+        {
+          "id": 27,
+          "text": "Al Design, Predictive failure",
+          "bbox": {
+            "x": 116,
+            "y": 694,
+            "width": 180,
+            "height": 26,
+            "x2": 296,
+            "y2": 720
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#31516f",
+          "confidence": 0.8983248872443176,
+          "num_lines": 1,
+          "cropped_image": "text_027.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_027.png"
+        },
+        {
+          "id": 28,
+          "text": "Electric Car Production",
+          "bbox": {
+            "x": 424,
+            "y": 694,
+            "width": 154,
+            "height": 24,
+            "x2": 578,
+            "y2": 718
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#304961",
+          "confidence": 0.9618421107028505,
+          "num_lines": 1,
+          "cropped_image": "text_028.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_028.png"
+        },
+        {
+          "id": 29,
+          "text": "Main Factorirs; SEAT, Ford, Renault",
+          "bbox": {
+            "x": 730,
+            "y": 708,
+            "width": 212,
+            "height": 26,
+            "x2": 942,
+            "y2": 734
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#364e63",
+          "confidence": 0.5813905777356182,
+          "num_lines": 1,
+          "cropped_image": "text_029.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_029.png"
+        },
+        {
+          "id": 30,
+          "text": "30",
+          "bbox": {
+            "x": 112,
+            "y": 744,
+            "width": 24,
+            "height": 24,
+            "x2": 136,
+            "y2": 768
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#233f5a",
+          "confidence": 0.9996371349201185,
+          "num_lines": 1,
+          "cropped_image": "text_030.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_030.png"
+        },
+        {
+          "id": 31,
+          "text": "Rapid protoying",
+          "bbox": {
+            "x": 192,
+            "y": 742,
+            "width": 110,
+            "height": 30,
+            "x2": 302,
+            "y2": 772
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#2d4d67",
+          "confidence": 0.7317511170107986,
+          "num_lines": 1,
+          "cropped_image": "text_031.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_031.png"
+        },
+        {
+          "id": 32,
+          "text": "Renewable",
+          "bbox": {
+            "x": 424,
+            "y": 744,
+            "width": 76,
+            "height": 24,
+            "x2": 500,
+            "y2": 768
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#294860",
+          "confidence": 0.999989430081729,
+          "num_lines": 1,
+          "cropped_image": "text_032.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_032.png"
+        },
+        {
+          "id": 33,
+          "text": "lonic Models: SEAT",
+          "bbox": {
+            "x": 720,
+            "y": 752,
+            "width": 114,
+            "height": 24,
+            "x2": 834,
+            "y2": 776
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#324d65",
+          "confidence": 0.9060501401816612,
+          "num_lines": 1,
+          "cropped_image": "text_033.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_033.png"
+        },
+        {
+          "id": 34,
+          "text": "Ford",
+          "bbox": {
+            "x": 866,
+            "y": 752,
+            "width": 34,
+            "height": 24,
+            "x2": 900,
+            "y2": 776
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#374c62",
+          "confidence": 0.9999967217445374,
+          "num_lines": 1,
+          "cropped_image": "text_034.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_034.png"
+        },
+        {
+          "id": 35,
+          "text": "KEY FACTS",
+          "bbox": {
+            "x": 460,
+            "y": 850,
+            "width": 92,
+            "height": 30,
+            "x2": 552,
+            "y2": 880
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#133c5e",
+          "confidence": 0.7486190815675398,
+          "num_lines": 1,
+          "cropped_image": "text_035.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_035.png"
+        },
+        {
+          "id": 36,
+          "text": "Assembly Time:",
+          "bbox": {
+            "x": 428,
+            "y": 888,
+            "width": 116,
+            "height": 26,
+            "x2": 544,
+            "y2": 914
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#325572",
+          "confidence": 0.9976994726305864,
+          "num_lines": 1,
+          "cropped_image": "text_036.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_036.png"
+        },
+        {
+          "id": 37,
+          "text": "20 hours",
+          "bbox": {
+            "x": 550,
+            "y": 888,
+            "width": 66,
+            "height": 24,
+            "x2": 616,
+            "y2": 912
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#375a77",
+          "confidence": 0.9999464729089931,
+          "num_lines": 1,
+          "cropped_image": "text_037.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_037.png"
+        },
+        {
+          "id": 38,
+          "text": "Materials: Steel Aluminum; Plastics",
+          "bbox": {
+            "x": 386,
+            "y": 934,
+            "width": 248,
+            "height": 28,
+            "x2": 634,
+            "y2": 962
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#2e536c",
+          "confidence": 0.6830257186070088,
+          "num_lines": 1,
+          "cropped_image": "text_038.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_038.png"
+        },
+        {
+          "id": 39,
+          "text": "044",
+          "bbox": {
+            "x": 110,
+            "y": 277,
+            "width": 32,
+            "height": 17,
+            "x2": 142,
+            "y2": 294
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#597991",
+          "confidence": 0.11273353812587389,
+          "num_lines": 1,
+          "cropped_image": "text_039.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_039.png"
+        },
+        {
+          "id": 40,
+          "text": "Body;",
+          "bbox": {
+            "x": 574,
+            "y": 401,
+            "width": 42,
+            "height": 27,
+            "x2": 616,
+            "y2": 428
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#365a74",
+          "confidence": 0.9106290982005204,
+          "num_lines": 1,
+          "cropped_image": "text_040.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_040.png"
+        },
+        {
+          "id": 41,
+          "text": "Printing:",
+          "bbox": {
+            "x": 131,
+            "y": 739,
+            "width": 66,
+            "height": 32,
+            "x2": 197,
+            "y2": 771
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#2f4a63",
+          "confidence": 0.9991734306406401,
+          "num_lines": 1,
+          "cropped_image": "text_041.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_041.png"
+        },
+        {
+          "id": 42,
+          "text": "Energy",
+          "bbox": {
+            "x": 494,
+            "y": 741,
+            "width": 55,
+            "height": 32,
+            "x2": 549,
+            "y2": 773
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#2c4c65",
+          "confidence": 0.999751986113184,
+          "num_lines": 1,
+          "cropped_image": "text_042.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_042.png"
+        },
+        {
+          "id": 43,
+          "text": "JKuga",
+          "bbox": {
+            "x": 891,
+            "y": 749,
+            "width": 45,
+            "height": 33,
+            "x2": 936,
+            "y2": 782
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#36506b",
+          "confidence": 0.6818402706995724,
+          "num_lines": 1,
+          "cropped_image": "text_043.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_043.png"
+        },
+        {
+          "id": 44,
+          "text": "Leon;",
+          "bbox": {
+            "x": 828,
+            "y": 753,
+            "width": 42,
+            "height": 25,
+            "x2": 870,
+            "y2": 778
+          },
+          "font": {
+            "family": "Arial",
+            "size": 22,
+            "weight": "normal",
+            "style": "normal",
+            "classified_font": "",
+            "classified_font_version": "",
+            "classification_confidence": 0.0,
+            "fallback_fonts": [
+              "Helvetica",
+              "sans-serif"
+            ],
+            "line_height": 1.2,
+            "letter_spacing": 0.0
+          },
+          "color": "#43556c",
+          "confidence": 0.5649442653450999,
+          "num_lines": 1,
+          "cropped_image": "text_044.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_044.png"
+        }
+      ]
+    },
+    "image_detection": {
+      "stage": "image_detection",
+      "count": 24,
+      "elements": [
+        {
+          "id": 0,
+          "bbox": {
+            "x": 216,
+            "y": 253,
+            "width": 151,
+            "height": 117,
+            "x2": 367,
+            "y2": 370
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              166,
+              134,
+              90
+            ],
+            [
+              202,
+              174,
+              138
+            ],
+            [
+              155,
+              100,
+              30
+            ],
+            [
+              228,
+              214,
+              195
+            ]
+          ],
+          "area": 17667,
+          "aspect_ratio": 1.291,
+          "cropped_image": "image_000.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_000.png"
+        },
+        {
+          "id": 1,
+          "bbox": {
+            "x": 511,
+            "y": 253,
+            "width": 117,
+            "height": 118,
+            "x2": 628,
+            "y2": 371
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              154,
+              99,
+              28
+            ],
+            [
+              201,
+              177,
+              143
+            ],
+            [
+              222,
+              214,
+              198
+            ],
+            [
+              165,
+              131,
+              84
+            ]
+          ],
+          "area": 13806,
+          "aspect_ratio": 0.992,
+          "cropped_image": "image_001.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_001.png"
+        },
+        {
+          "id": 2,
+          "bbox": {
+            "x": 805,
+            "y": 253,
+            "width": 117,
+            "height": 117,
+            "x2": 922,
+            "y2": 370
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              158,
+              128,
+              84
+            ],
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              203,
+              174,
+              134
+            ],
+            [
+              155,
+              99,
+              29
+            ],
+            [
+              221,
+              215,
+              201
+            ]
+          ],
+          "area": 13689,
+          "aspect_ratio": 1.0,
+          "cropped_image": "image_002.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_002.png"
+        },
+        {
+          "id": 3,
+          "bbox": {
+            "x": 364,
+            "y": 253,
+            "width": 117,
+            "height": 117,
+            "x2": 481,
+            "y2": 370
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              154,
+              100,
+              28
+            ],
+            [
+              193,
+              173,
+              144
+            ],
+            [
+              161,
+              130,
+              87
+            ],
+            [
+              224,
+              216,
+              202
+            ]
+          ],
+          "area": 13689,
+          "aspect_ratio": 1.0,
+          "cropped_image": "image_003.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_003.png"
+        },
+        {
+          "id": 4,
+          "bbox": {
+            "x": 68,
+            "y": 253,
+            "width": 117,
+            "height": 117,
+            "x2": 185,
+            "y2": 370
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              165,
+              105,
+              26
+            ],
+            [
+              175,
+              148,
+              109
+            ],
+            [
+              133,
+              97,
+              51
+            ],
+            [
+              211,
+              200,
+              181
+            ]
+          ],
+          "area": 13689,
+          "aspect_ratio": 1.0,
+          "cropped_image": "image_004.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_004.png"
+        },
+        {
+          "id": 5,
+          "bbox": {
+            "x": 658,
+            "y": 253,
+            "width": 116,
+            "height": 118,
+            "x2": 774,
+            "y2": 371
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              223,
+              214,
+              201
+            ],
+            [
+              162,
+              129,
+              85
+            ],
+            [
+              208,
+              173,
+              129
+            ],
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              154,
+              100,
+              32
+            ]
+          ],
+          "area": 13688,
+          "aspect_ratio": 0.983,
+          "cropped_image": "image_005.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_005.png"
+        },
+        {
+          "id": 6,
+          "bbox": {
+            "x": 334,
+            "y": 875,
+            "width": 92,
+            "height": 101,
+            "x2": 426,
+            "y2": 976
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              138,
+              116,
+              86
+            ],
+            [
+              177,
+              165,
+              147
+            ],
+            [
+              215,
+              209,
+              201
+            ],
+            [
+              107,
+              77,
+              37
+            ]
+          ],
+          "area": 9292,
+          "aspect_ratio": 0.911,
+          "cropped_image": "image_006.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_006.png"
+        },
+        {
+          "id": 7,
+          "bbox": {
+            "x": 377,
+            "y": 878,
+            "width": 45,
+            "height": 45,
+            "x2": 422,
+            "y2": 923
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              139,
+              118,
+              88
+            ],
+            [
+              173,
+              160,
+              141
+            ],
+            [
+              103,
+              70,
+              26
+            ],
+            [
+              214,
+              208,
+              200
+            ]
+          ],
+          "area": 2025,
+          "aspect_ratio": 1.0,
+          "cropped_image": "image_007.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_007.png"
+        },
+        {
+          "id": 8,
+          "bbox": {
+            "x": 339,
+            "y": 925,
+            "width": 44,
+            "height": 45,
+            "x2": 383,
+            "y2": 970
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              253,
+              253,
+              253
+            ],
+            [
+              123,
+              98,
+              65
+            ],
+            [
+              193,
+              184,
+              170
+            ],
+            [
+              160,
+              142,
+              120
+            ],
+            [
+              224,
+              221,
+              215
+            ]
+          ],
+          "area": 1980,
+          "aspect_ratio": 0.978,
+          "cropped_image": "image_008.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_008.png"
+        },
+        {
+          "id": 9,
+          "bbox": {
+            "x": 682,
+            "y": 639,
+            "width": 42,
+            "height": 47,
+            "x2": 724,
+            "y2": 686
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              174,
+              179,
+              243
+            ],
+            [
+              113,
+              101,
+              100
+            ],
+            [
+              135,
+              130,
+              157
+            ],
+            [
+              91,
+              74,
+              46
+            ],
+            [
+              162,
+              166,
+              235
+            ]
+          ],
+          "area": 1974,
+          "aspect_ratio": 0.894,
+          "cropped_image": "image_009.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_009.png"
+        },
+        {
+          "id": 10,
+          "bbox": {
+            "x": 68,
+            "y": 635,
+            "width": 41,
+            "height": 43,
+            "x2": 109,
+            "y2": 678
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              225,
+              201,
+              169
+            ],
+            [
+              122,
+              91,
+              57
+            ],
+            [
+              158,
+              128,
+              95
+            ],
+            [
+              100,
+              67,
+              33
+            ],
+            [
+              191,
+              162,
+              129
+            ]
+          ],
+          "area": 1763,
+          "aspect_ratio": 0.953,
+          "cropped_image": "image_010.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_010.png"
+        },
+        {
+          "id": 11,
+          "bbox": {
+            "x": 374,
+            "y": 634,
+            "width": 41,
+            "height": 40,
+            "x2": 415,
+            "y2": 674
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              98,
+              152,
+              111
+            ],
+            [
+              159,
+              211,
+              184
+            ],
+            [
+              70,
+              68,
+              43
+            ],
+            [
+              91,
+              109,
+              79
+            ],
+            [
+              136,
+              168,
+              142
+            ]
+          ],
+          "area": 1640,
+          "aspect_ratio": 1.025,
+          "cropped_image": "image_011.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_011.png"
+        },
+        {
+          "id": 12,
+          "bbox": {
+            "x": 681,
+            "y": 707,
+            "width": 43,
+            "height": 33,
+            "x2": 724,
+            "y2": 740
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              167,
+              172,
+              239
+            ],
+            [
+              104,
+              88,
+              80
+            ],
+            [
+              123,
+              112,
+              128
+            ],
+            [
+              146,
+              143,
+              188
+            ],
+            [
+              89,
+              68,
+              38
+            ]
+          ],
+          "area": 1419,
+          "aspect_ratio": 1.303,
+          "cropped_image": "image_012.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_012.png"
+        },
+        {
+          "id": 13,
+          "bbox": {
+            "x": 771,
+            "y": 296,
+            "width": 37,
+            "height": 34,
+            "x2": 808,
+            "y2": 330
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              254,
+              254,
+              253
+            ],
+            [
+              236,
+              214,
+              189
+            ],
+            [
+              240,
+              231,
+              216
+            ],
+            [
+              232,
+              211,
+              183
+            ],
+            [
+              250,
+              246,
+              238
+            ]
+          ],
+          "area": 1258,
+          "aspect_ratio": 1.088,
+          "cropped_image": "image_013.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_013.png"
+        },
+        {
+          "id": 14,
+          "bbox": {
+            "x": 624,
+            "y": 296,
+            "width": 37,
+            "height": 34,
+            "x2": 661,
+            "y2": 330
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              253,
+              254,
+              254
+            ],
+            [
+              234,
+              214,
+              189
+            ],
+            [
+              240,
+              230,
+              216
+            ],
+            [
+              232,
+              211,
+              184
+            ],
+            [
+              248,
+              242,
+              234
+            ]
+          ],
+          "area": 1258,
+          "aspect_ratio": 1.088,
+          "cropped_image": "image_014.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_014.png"
+        },
+        {
+          "id": 15,
+          "bbox": {
+            "x": 477,
+            "y": 296,
+            "width": 37,
+            "height": 34,
+            "x2": 514,
+            "y2": 330
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              250,
+              248,
+              241
+            ],
+            [
+              235,
+              216,
+              192
+            ],
+            [
+              240,
+              232,
+              219
+            ],
+            [
+              234,
+              213,
+              187
+            ],
+            [
+              253,
+              254,
+              253
+            ]
+          ],
+          "area": 1258,
+          "aspect_ratio": 1.088,
+          "cropped_image": "image_015.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_015.png"
+        },
+        {
+          "id": 16,
+          "bbox": {
+            "x": 182,
+            "y": 296,
+            "width": 37,
+            "height": 34,
+            "x2": 219,
+            "y2": 330
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              235,
+              215,
+              191
+            ],
+            [
+              253,
+              254,
+              254
+            ],
+            [
+              249,
+              246,
+              239
+            ],
+            [
+              234,
+              211,
+              185
+            ],
+            [
+              242,
+              234,
+              222
+            ]
+          ],
+          "area": 1258,
+          "aspect_ratio": 1.088,
+          "cropped_image": "image_016.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_016.png"
+        },
+        {
+          "id": 17,
+          "bbox": {
+            "x": 66,
+            "y": 738,
+            "width": 39,
+            "height": 32,
+            "x2": 105,
+            "y2": 770
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              226,
+              203,
+              173
+            ],
+            [
+              136,
+              108,
+              77
+            ],
+            [
+              163,
+              136,
+              105
+            ],
+            [
+              192,
+              167,
+              137
+            ],
+            [
+              104,
+              77,
+              48
+            ]
+          ],
+          "area": 1248,
+          "aspect_ratio": 1.219,
+          "cropped_image": "image_017.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_017.png"
+        },
+        {
+          "id": 18,
+          "bbox": {
+            "x": 892,
+            "y": 652,
+            "width": 45,
+            "height": 26,
+            "x2": 937,
+            "y2": 678
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              98,
+              82,
+              58
+            ],
+            [
+              162,
+              162,
+              221
+            ],
+            [
+              121,
+              108,
+              116
+            ],
+            [
+              147,
+              144,
+              183
+            ],
+            [
+              170,
+              174,
+              242
+            ]
+          ],
+          "area": 1170,
+          "aspect_ratio": 1.731,
+          "cropped_image": "image_018.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_018.png"
+        },
+        {
+          "id": 19,
+          "bbox": {
+            "x": 371,
+            "y": 695,
+            "width": 43,
+            "height": 27,
+            "x2": 414,
+            "y2": 722
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              157,
+              212,
+              185
+            ],
+            [
+              87,
+              77,
+              53
+            ],
+            [
+              110,
+              122,
+              97
+            ],
+            [
+              133,
+              163,
+              138
+            ],
+            [
+              147,
+              195,
+              168
+            ]
+          ],
+          "area": 1161,
+          "aspect_ratio": 1.593,
+          "cropped_image": "image_019.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_019.png"
+        },
+        {
+          "id": 20,
+          "bbox": {
+            "x": 70,
+            "y": 687,
+            "width": 33,
+            "height": 33,
+            "x2": 103,
+            "y2": 720
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              225,
+              201,
+              170
+            ],
+            [
+              102,
+              70,
+              39
+            ],
+            [
+              176,
+              148,
+              116
+            ],
+            [
+              143,
+              110,
+              77
+            ],
+            [
+              202,
+              176,
+              145
+            ]
+          ],
+          "area": 1089,
+          "aspect_ratio": 1.0,
+          "cropped_image": "image_020.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_020.png"
+        },
+        {
+          "id": 21,
+          "bbox": {
+            "x": 679,
+            "y": 755,
+            "width": 43,
+            "height": 24,
+            "x2": 722,
+            "y2": 779
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              167,
+              171,
+              239
+            ],
+            [
+              111,
+              96,
+              82
+            ],
+            [
+              131,
+              120,
+              132
+            ],
+            [
+              153,
+              152,
+              204
+            ],
+            [
+              99,
+              79,
+              42
+            ]
+          ],
+          "area": 1032,
+          "aspect_ratio": 1.792,
+          "cropped_image": "image_021.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_021.png"
+        },
+        {
+          "id": 22,
+          "bbox": {
+            "x": 377,
+            "y": 746,
+            "width": 32,
+            "height": 24,
+            "x2": 409,
+            "y2": 770
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              109,
+              120,
+              90
+            ],
+            [
+              158,
+              209,
+              182
+            ],
+            [
+              91,
+              90,
+              59
+            ],
+            [
+              166,
+              222,
+              197
+            ],
+            [
+              131,
+              159,
+              131
+            ]
+          ],
+          "area": 768,
+          "aspect_ratio": 1.333,
+          "cropped_image": "image_022.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_022.png"
+        },
+        {
+          "id": 23,
+          "bbox": {
+            "x": 640,
+            "y": 929,
+            "width": 38,
+            "height": 20,
+            "x2": 678,
+            "y2": 949
+          },
+          "is_photo": true,
+          "dominant_colors": [
+            [
+              219,
+              215,
+              210
+            ],
+            [
+              145,
+              125,
+              100
+            ],
+            [
+              180,
+              169,
+              154
+            ],
+            [
+              252,
+              252,
+              253
+            ],
+            [
+              113,
+              85,
+              50
+            ]
+          ],
+          "area": 760,
+          "aspect_ratio": 1.9,
+          "cropped_image": "image_023.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_023.png"
+        }
+      ]
+    },
+    "container_detection": {
+      "stage": "container_detection",
+      "count": 9,
+      "elements": [
+        {
+          "id": 0,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 65,
+            "y": 250,
+            "width": 862,
+            "height": 125,
+            "x2": 927,
+            "y2": 375
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 107750,
+          "aspect_ratio": 6.896,
+          "cropped_image": "container_000.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_000.png"
+        },
+        {
+          "id": 1,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 655,
+            "y": 543,
+            "width": 309,
+            "height": 258,
+            "x2": 964,
+            "y2": 801
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 79722,
+          "aspect_ratio": 1.198,
+          "cropped_image": "container_001.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_001.png"
+        },
+        {
+          "id": 2,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 347,
+            "y": 543,
+            "width": 298,
+            "height": 258,
+            "x2": 645,
+            "y2": 801
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 76884,
+          "aspect_ratio": 1.155,
+          "cropped_image": "container_002.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_002.png"
+        },
+        {
+          "id": 3,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 43,
+            "y": 543,
+            "width": 294,
+            "height": 258,
+            "x2": 337,
+            "y2": 801
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 75852,
+          "aspect_ratio": 1.14,
+          "cropped_image": "container_003.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_003.png"
+        },
+        {
+          "id": 4,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 658,
+            "y": 547,
+            "width": 302,
+            "height": 75,
+            "x2": 960,
+            "y2": 622
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 22650,
+          "aspect_ratio": 4.027,
+          "cropped_image": "container_004.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_004.png"
+        },
+        {
+          "id": 5,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 46,
+            "y": 547,
+            "width": 287,
+            "height": 74,
+            "x2": 333,
+            "y2": 621
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 21238,
+          "aspect_ratio": 3.878,
+          "cropped_image": "container_005.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_005.png"
+        },
+        {
+          "id": 6,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 352,
+            "y": 548,
+            "width": 287,
+            "height": 71,
+            "x2": 639,
+            "y2": 619
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 20377,
+          "aspect_ratio": 4.042,
+          "cropped_image": "container_006.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_006.png"
+        },
+        {
+          "id": 7,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 26,
+            "y": 207,
+            "width": 78,
+            "height": 78,
+            "x2": 104,
+            "y2": 285
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 6084,
+          "aspect_ratio": 1.0,
+          "cropped_image": "container_007.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_007.png"
+        },
+        {
+          "id": 8,
+          "container_type": "rectangle",
+          "bbox": {
+            "x": 632,
+            "y": 922,
+            "width": 59,
+            "height": 52,
+            "x2": 691,
+            "y2": 974
+          },
+          "fill_color": "#FFFFFF",
+          "stroke_color": "#000000",
+          "stroke_width": 1,
+          "corner_radius": 0,
+          "contains_image": false,
+          "contains_text": false,
+          "area": 3068,
+          "aspect_ratio": 1.135,
+          "cropped_image": "container_008.png",
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_008.png"
+        }
+      ]
+    },
+    "background_extraction": {
+      "stage": "background_extraction",
+      "dimensions": {
+        "width": 1024,
+        "height": 1024
+      },
+      "average_color": {
+        "rgb": [
+          253,
+          254,
+          253
+        ],
+        "hex": "#fdfefd"
+      },
+      "background_image": "background.png",
+      "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/background/background.png"
+    }
+  }
+}

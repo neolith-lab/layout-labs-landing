@@ -14,6 +14,7 @@ import os
 import json
 from pathlib import Path
 from datetime import datetime
+import uuid
 
 from text_extractor import TextExtractor, TextElement
 from container_detector import ContainerDetector, ContainerElement
@@ -55,7 +56,7 @@ class RasterToSVGConverter:
         Layer 5 (Top): Text
     """
     
-    def __init__(self):
+    def __init__(self, s3_bucket: str = None, s3_prefix: str = None):
         logger.info("Initializing Raster to SVG Converter...")
         
         self.text_extractor = TextExtractor()
@@ -63,6 +64,71 @@ class RasterToSVGConverter:
         self.container_detector = ContainerDetector()
         self.background_filler = BackgroundFiller()
         self.svg_generator = SVGGenerator()
+        
+        # S3 configuration for storing extracted elements
+        self.s3_bucket = s3_bucket
+        self.s3_prefix = s3_prefix or f"extractions/{uuid.uuid4().hex}"
+        self.use_s3 = s3_bucket is not None
+        
+        if self.use_s3:
+            try:
+                import boto3
+                import os
+                
+                # Check for required AWS credentials
+                aws_access_key = os.environ.get('AWS_ACCESS_KEY_ID')
+                aws_secret_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
+                aws_region = os.environ.get('AWS_REGION') or os.environ.get('AWS_DEFAULT_REGION')
+                
+                missing_vars = []
+                if not aws_access_key:
+                    missing_vars.append('AWS_ACCESS_KEY_ID')
+                if not aws_secret_key:
+                    missing_vars.append('AWS_SECRET_ACCESS_KEY')
+                if not aws_region:
+                    missing_vars.append('AWS_REGION (or AWS_DEFAULT_REGION)')
+                
+                if missing_vars:
+                    error_msg = (
+                        f"Missing required AWS credentials: {', '.join(missing_vars)}\n"
+                        f"Please set these environment variables:\n"
+                        f"  export AWS_ACCESS_KEY_ID=your-access-key\n"
+                        f"  export AWS_SECRET_ACCESS_KEY=your-secret-key\n"
+                        f"  export AWS_REGION=ap-south-1  # Your bucket region"
+                    )
+                    raise ValueError(error_msg)
+                
+                # Initialize S3 client with explicit region
+                self.s3_client = boto3.client(
+                    's3',
+                    region_name=aws_region,
+                    aws_access_key_id=aws_access_key,
+                    aws_secret_access_key=aws_secret_key
+                )
+                
+                # Verify bucket access
+                try:
+                    self.s3_client.head_bucket(Bucket=self.s3_bucket)
+                    logger.info(f"S3 storage enabled: s3://{self.s3_bucket}/{self.s3_prefix}")
+                except Exception as bucket_error:
+                    raise ValueError(
+                        f"Cannot access S3 bucket '{self.s3_bucket}': {bucket_error}\n"
+                        f"Please verify:\n"
+                        f"  1. Bucket exists in region {aws_region}\n"
+                        f"  2. Your credentials have s3:PutObject permission\n"
+                        f"  3. Bucket name is correct: {self.s3_bucket}"
+                    )
+                    
+            except ImportError:
+                raise ImportError(
+                    "boto3 is required for S3 uploads. Install it with:\n"
+                    "  pip install boto3"
+                )
+            except ValueError:
+                # Re-raise our custom errors with helpful messages
+                raise
+            except Exception as e:
+                raise RuntimeError(f"Failed to initialize S3 client: {e}")
         
         # Create debug output directory if needed
         if DEBUG.get('save_intermediate_steps', False):
@@ -476,6 +542,61 @@ class RasterToSVGConverter:
         os.makedirs(path, exist_ok=True)
         return path
     
+    def _upload_to_s3(self, local_path: str, s3_key: str) -> Optional[str]:
+        """
+        Upload a file to S3 and return the URL.
+        
+        Args:
+            local_path: Local file path
+            s3_key: S3 object key (path in bucket)
+            
+        Returns:
+            Public URL to the uploaded file, or None if upload failed
+        """
+        if not self.use_s3:
+            return None
+        
+        try:
+            self.s3_client.upload_file(local_path, self.s3_bucket, s3_key)
+            # Use region-specific URL format
+            region = self.s3_client.meta.region_name
+            if region == 'us-east-1':
+                url = f"https://{self.s3_bucket}.s3.amazonaws.com/{s3_key}"
+            else:
+                url = f"https://{self.s3_bucket}.s3.{region}.amazonaws.com/{s3_key}"
+            logger.debug(f"Uploaded to S3: {url}")
+            return url
+        except Exception as e:
+            logger.error(f"Failed to upload {s3_key} to S3: {e}")
+            raise  # Propagate error instead of silently returning None
+    
+    def _upload_image_to_s3(self, image: np.ndarray, s3_key: str) -> Optional[str]:
+        """
+        Upload a numpy image array to S3 and return the URL.
+        
+        Args:
+            image: NumPy image array
+            s3_key: S3 object key (path in bucket)
+            
+        Returns:
+            Public URL to the uploaded image, or None if upload failed
+        """
+        if not self.use_s3:
+            return None
+        
+        try:
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
+                cv2.imwrite(tmp_file.name, image)
+                tmp_path = tmp_file.name
+            
+            url = self._upload_to_s3(tmp_path, s3_key)
+            os.unlink(tmp_path)
+            return url
+        except Exception as e:
+            logger.error(f"Failed to upload image to S3: {e}")
+            raise  # Propagate error instead of silently returning None
+    
     def _save_text_elements_debug(self, original_image: np.ndarray, 
                                    text_elements: List[TextElement]) -> Dict:
         """
@@ -505,10 +626,16 @@ class RasterToSVGConverter:
             bbox = elem.bbox
             cropped = original_image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
             
-            # Save cropped image
+            # Save cropped image locally
             crop_filename = f"text_{i:03d}.png"
             crop_path = os.path.join(text_dir, crop_filename)
             cv2.imwrite(crop_path, cropped)
+            
+            # Upload to S3 if enabled
+            s3_url = None
+            if self.use_s3:
+                s3_key = f"{self.s3_prefix}/text_elements/{crop_filename}"
+                s3_url = self._upload_to_s3(crop_path, s3_key)
             
             # Build element metadata
             element_data = {
@@ -537,7 +664,8 @@ class RasterToSVGConverter:
                 'color': str(elem.color),
                 'confidence': float(elem.confidence),
                 'num_lines': int(elem.num_lines),
-                'cropped_image': str(crop_filename)
+                'cropped_image': str(crop_filename),
+                's3_url': s3_url
             }
             text_data['elements'].append(element_data)
         
@@ -581,10 +709,16 @@ class RasterToSVGConverter:
             # Crop the image region
             cropped = original_image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
             
-            # Save cropped image
+            # Save cropped image locally
             crop_filename = f"image_{i:03d}.png"
             crop_path = os.path.join(image_dir, crop_filename)
             cv2.imwrite(crop_path, cropped)
+            
+            # Upload to S3 if enabled
+            s3_url = None
+            if self.use_s3:
+                s3_key = f"{self.s3_prefix}/image_elements/{crop_filename}"
+                s3_url = self._upload_to_s3(crop_path, s3_key)
             
             # Build element metadata
             element_data = {
@@ -601,7 +735,8 @@ class RasterToSVGConverter:
                 'dominant_colors': [[int(c) for c in color] for color in elem.dominant_colors] if elem.dominant_colors else [],
                 'area': int(bbox.w * bbox.h),
                 'aspect_ratio': float(round(bbox.w / bbox.h, 3)) if bbox.h > 0 else 0.0,
-                'cropped_image': str(crop_filename)
+                'cropped_image': str(crop_filename),
+                's3_url': s3_url
             }
             image_data['elements'].append(element_data)
         
@@ -643,10 +778,16 @@ class RasterToSVGConverter:
             # Crop the container region
             cropped = cleaned_image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
             
-            # Save cropped image
+            # Save cropped image locally
             crop_filename = f"container_{i:03d}.png"
             crop_path = os.path.join(container_dir, crop_filename)
             cv2.imwrite(crop_path, cropped)
+            
+            # Upload to S3 if enabled
+            s3_url = None
+            if self.use_s3:
+                s3_key = f"{self.s3_prefix}/container_elements/{crop_filename}"
+                s3_url = self._upload_to_s3(crop_path, s3_key)
             
             # Build element metadata
             element_data = {
@@ -668,7 +809,8 @@ class RasterToSVGConverter:
                 'contains_text': bool(container.contains_text),
                 'area': int(bbox.w * bbox.h),
                 'aspect_ratio': float(round(bbox.w / bbox.h, 3)) if bbox.h > 0 else 0.0,
-                'cropped_image': str(crop_filename)
+                'cropped_image': str(crop_filename),
+                's3_url': s3_url
             }
             container_data['elements'].append(element_data)
         
@@ -704,6 +846,12 @@ class RasterToSVGConverter:
         bg_path = os.path.join(bg_dir, bg_filename)
         cv2.imwrite(bg_path, background_image)
         
+        # Upload to S3 if enabled
+        s3_url = None
+        if self.use_s3:
+            s3_key = f"{self.s3_prefix}/background/{bg_filename}"
+            s3_url = self._upload_to_s3(bg_path, s3_key)
+        
         # Calculate dominant colors in background
         # Sample from center region to avoid edge artifacts
         h, w = background_image.shape[:2]
@@ -721,7 +869,8 @@ class RasterToSVGConverter:
                 'rgb': [int(avg_color[2]), int(avg_color[1]), int(avg_color[0])],  # BGR to RGB
                 'hex': str(avg_color_hex)
             },
-            'background_image': str(bg_filename)
+            'background_image': str(bg_filename),
+            's3_url': s3_url
         }
         
         # Save background JSON

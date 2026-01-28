@@ -29,6 +29,12 @@ Examples:
   
   # Process JPG files in batch
   python cli.py ./images -o ./output --batch --pattern "*.jpg"
+  
+  # Upload extracted elements to S3
+  python cli.py input.png -o output.svg --debug --s3-bucket my-bucket
+  
+  # Upload to S3 with custom prefix
+  python cli.py input.png -o output.svg --debug --s3-bucket my-bucket --s3-prefix my-project/v1
         """
     )
     
@@ -58,6 +64,12 @@ Examples:
     parser.add_argument('--debug-dir', 
                        help='Directory for debug output')
     
+    # S3 Storage options
+    parser.add_argument('--s3-bucket',
+                       help='S3 bucket name for storing extracted elements')
+    parser.add_argument('--s3-prefix',
+                       help='S3 prefix/folder for organizing uploads (default: auto-generated)')
+    
     args = parser.parse_args()
     
     # Apply configuration
@@ -77,8 +89,24 @@ Examples:
     if args.min_shape_area:
         SHAPE_DETECTION['min_area'] = args.min_shape_area
     
-    # Create converter
-    converter = RasterToSVGConverter()
+    # Create converter with S3 support if configured
+    try:
+        converter = RasterToSVGConverter(
+            s3_bucket=args.s3_bucket,
+            s3_prefix=args.s3_prefix
+        )
+    except (ValueError, ImportError, RuntimeError) as e:
+        print(f"\n{'='*60}")
+        print("ERROR: S3 Configuration Failed")
+        print(f"{'='*60}")
+        print(f"{e}")
+        print(f"{'='*60}\n")
+        return 1
+    
+    # Print S3 configuration if enabled
+    if args.s3_bucket:
+        print(f"S3 Storage enabled: s3://{args.s3_bucket}/{converter.s3_prefix}")
+        print()
     
     try:
         if args.batch:
@@ -95,6 +123,10 @@ Examples:
             print(f"Successful:      {results['successful']}")
             print(f"Failed:          {results['failed']}")
             print(f"Output directory: {output_dir}")
+            
+            if DEBUG.get('save_intermediate_steps', False) and args.s3_bucket:
+                print(f"\nS3 uploads:      s3://{args.s3_bucket}/{converter.s3_prefix}/")
+                print(f"                 Extracted elements uploaded for each image")
             
             if results['failed'] > 0:
                 print("\nFailed files:")
@@ -127,6 +159,11 @@ Examples:
             
             if DEBUG.get('save_intermediate_steps', False):
                 print(f"\nDebug output:    {DEBUG.get('output_dir', './debug_output')}")
+                
+                # Show S3 information if available
+                if args.s3_bucket:
+                    print(f"S3 uploads:      s3://{args.s3_bucket}/{converter.s3_prefix}/")
+                    print(f"                 Check combined_extraction_data.json for all S3 URLs")
             
             return 0
             

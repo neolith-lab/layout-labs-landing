@@ -10,6 +10,9 @@ from pathlib import Path
 # Create Modal app
 app = modal.App("raster-to-svg-converter")
 
+# Define secrets for AWS credentials
+aws_secret = modal.Secret.from_name("aws-credentials")
+
 # Define the image with all required dependencies
 image = (
     modal.Image.debian_slim(python_version="3.10")
@@ -36,6 +39,7 @@ image = (
         "shapely>=2.0.0",
         "easyocr>=1.7.0",
         "requests>=2.31.0",
+        "boto3>=1.28.0",  # Added for S3 support
     ).add_local_dir("../dev_destructure", remote_path="/root/dev_destructure")
 )
 
@@ -48,6 +52,7 @@ image = (
 
 @app.function(
     image=image,
+    secrets=[aws_secret],  # Add AWS credentials
     # mounts=[code_mount],
     timeout=600,  # 10 minutes timeout
     cpu=4,  # Use 4 CPUs for faster processing
@@ -58,35 +63,44 @@ def convert_image_to_svg(
     image_url: str = None,
     image_bytes: bytes = None,
     output_filename: str = "output.svg",
-    debug: bool = False,
+    debug: bool = True,  # Default to True for deconstruction
     ocr_confidence: int = 60,
     convert_images: bool = False,
+    return_json_only: bool = True,  # Default to True - return JSON with S3 URLs
+    s3_bucket: str = None,  # S3 bucket for storing extracted elements
 ) -> dict:
     """
-    Convert a raster infographic image to SVG
+    Convert a raster infographic image to SVG and return deconstruction data
     
     Args:
         image_url: URL of the input image (preferred method)
         image_bytes: Input image as bytes (alternative to image_url)
         output_filename: Name for output SVG file
-        debug: Enable debug mode (saves intermediate steps)
+        debug: Enable debug mode (saves intermediate steps and extracts elements)
         ocr_confidence: Minimum OCR confidence threshold (0-100)
         convert_images: Convert embedded images to SVG (experimental)
+        return_json_only: Return only JSON with S3 URLs (no SVG content or debug images)
+        s3_bucket: S3 bucket name for storing extracted elements (defaults to env var)
     
     Returns:
-        Dictionary with SVG content, statistics, and debug images
+        Dictionary with extraction data, statistics, and optionally SVG content
     """
     import sys
     import tempfile
     import cv2
     import numpy as np
     import requests
+    import os
     
     # Add the dev_destructure directory to Python path
     sys.path.insert(0, "/root/dev_destructure")
     
     from raster_to_svg import RasterToSVGConverter
     from config import DEBUG, OCR_CONFIG
+    
+    # Get S3 bucket from parameter or environment
+    if s3_bucket is None:
+        s3_bucket = os.environ.get('AWS_S3_BUCKET', 'raster-to-svg-extractions')
     
     # Configure settings
     if debug:
@@ -95,7 +109,8 @@ def convert_image_to_svg(
     
     OCR_CONFIG['min_confidence'] = ocr_confidence
     
-    print(f"Starting conversion with debug={debug}, ocr_confidence={ocr_confidence}")
+    print(f"Starting conversion with debug={debug}, ocr_confidence={ocr_confidence}, return_json_only={return_json_only}")
+    print(f"S3 Bucket: {s3_bucket}")
     
     # Get image bytes from URL if provided
     if image_url:
@@ -125,42 +140,54 @@ def convert_image_to_svg(
         tmp_output_path = tmp_output.name
     
     try:
-        # Create converter and process
-        converter = RasterToSVGConverter()
+        # Create converter with S3 support
+        converter = RasterToSVGConverter(s3_bucket=s3_bucket if debug else None)
         result = converter.convert(
             tmp_input_path,
             tmp_output_path,
             convert_images_to_svg=convert_images
         )
         
-        # Read the SVG output
-        with open(tmp_output_path, 'r') as f:
-            svg_content = f.read()
-        
-        # Prepare result
+        # Prepare response
         response = {
-            'svg_content': svg_content,
+            'success': True,
             'statistics': result['statistics'],
-            'debug_images': {}
         }
         
-        # Include debug images if available
-        if debug and DEBUG.get('save_intermediate_steps', False):
-            import os
-            debug_dir = DEBUG.get('output_dir', '/tmp/debug_output')
-            if os.path.exists(debug_dir):
-                for filename in os.listdir(debug_dir):
-                    if filename.endswith(('.png', '.jpg')):
-                        filepath = os.path.join(debug_dir, filename)
-                        with open(filepath, 'rb') as f:
-                            response['debug_images'][filename] = f.read()
+        if return_json_only:
+            # Return JSON data with S3 URLs only
+            # Read the combined extraction JSON if it exists
+            json_path = os.path.join(DEBUG.get('output_dir', '/tmp/debug_output'), 'combined_extraction_data.json')
+            if os.path.exists(json_path):
+                import json
+                with open(json_path, 'r') as f:
+                    extraction_data = json.load(f)
+                response['extraction_data'] = extraction_data
+            else:
+                response['extraction_data'] = None
+                print("Warning: Combined extraction JSON not found")
+        else:
+            # Include SVG content
+            with open(tmp_output_path, 'r') as f:
+                svg_content = f.read()
+            response['svg_content'] = svg_content
+            
+            # Include debug images if available
+            response['debug_images'] = {}
+            if debug and DEBUG.get('save_intermediate_steps', False):
+                debug_dir = DEBUG.get('output_dir', '/tmp/debug_output')
+                if os.path.exists(debug_dir):
+                    for filename in os.listdir(debug_dir):
+                        if filename.endswith(('.png', '.jpg')):
+                            filepath = os.path.join(debug_dir, filename)
+                            with open(filepath, 'rb') as f:
+                                response['debug_images'][filename] = f.read()
         
         print(f"Conversion complete: {result['statistics']}")
         return response
         
     finally:
         # Cleanup
-        import os
         if os.path.exists(tmp_input_path):
             os.unlink(tmp_input_path)
         if os.path.exists(tmp_output_path):
@@ -169,6 +196,7 @@ def convert_image_to_svg(
 
 @app.function(
     image=image,
+    secrets=[aws_secret],  # Add AWS credentials for batch processing
     timeout=1800,  # 30 minutes for batch
     cpu=4,
     memory=8192,

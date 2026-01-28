@@ -89,7 +89,7 @@ def convert_image_to_svg(
     
     # Get S3 bucket from parameter or environment
     if s3_bucket is None:
-        s3_bucket = os.environ.get('AWS_S3_BUCKET', 'raster-to-svg-extractions')
+        s3_bucket = os.environ.get('AWS_S3_BUCKET', 'layoutlabs-temp')
     
     print(f"Starting conversion with S3 bucket: {s3_bucket}")
     

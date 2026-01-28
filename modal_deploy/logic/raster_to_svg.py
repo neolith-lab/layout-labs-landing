@@ -56,7 +56,7 @@ class RasterToSVGConverter:
         Layer 5 (Top): Text
     """
     
-    def __init__(self, s3_bucket: str = None, s3_prefix: str = None):
+    def __init__(self, s3_bucket: str = "layoutlabs-temp", s3_prefix: str = None):
         logger.info("Initializing Raster to SVG Converter...")
         
         self.text_extractor = TextExtractor()

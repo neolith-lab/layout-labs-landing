@@ -11,7 +11,9 @@ import numpy as np
 from typing import Dict, List, Optional
 import logging
 import os
+import json
 from pathlib import Path
+from datetime import datetime
 
 from text_extractor import TextExtractor, TextElement
 from container_detector import ContainerDetector, ContainerElement
@@ -66,6 +68,9 @@ class RasterToSVGConverter:
         if DEBUG.get('save_intermediate_steps', False):
             os.makedirs(DEBUG.get('output_dir', './debug_output'), exist_ok=True)
         
+        # Initialize debug data collector for combined JSON
+        self._debug_data = {}
+        
         logger.info("Converter initialized successfully")
     
     def convert(self, input_path: str, output_path: str = 'output.svg',
@@ -111,6 +116,9 @@ class RasterToSVGConverter:
         # Print detailed text summary with font information
         self._print_text_summary(text_elements)
         
+        # Save text elements debug data (Stage 1: Text Detection)
+        text_debug_data = self._save_text_elements_debug(original_image, text_elements)
+        
         # ============================================================
         # PHASE 1.4: TEXT REMOVAL AND INFILLING
         # ============================================================
@@ -147,6 +155,9 @@ class RasterToSVGConverter:
         image_bboxes = [elem.bbox for elem in image_elements]
         
         logger.info(f"Kept {len(image_elements)} images, filtered {len(filtered_containers)} container-like detections")
+        
+        # Save image elements debug data (Stage 2: Image Detection)
+        image_debug_data = self._save_image_elements_debug(text_removed_image, image_elements)
         
         # Step 2.1.5: Remove detected images using border color fill
         logger.info("=" * 50)
@@ -247,6 +258,9 @@ class RasterToSVGConverter:
         
         logger.info(f"Cleaned interiors of {len(container_bboxes)} containers")
         
+        # Save container elements debug data (Stage 3: Container Detection)
+        container_debug_data = self._save_container_elements_debug(cleaned_image, containers)
+        
         # Separate images into those inside containers and outside
         images_in_containers, images_outside = self.container_detector.get_images_in_containers(
             containers, image_elements
@@ -271,6 +285,9 @@ class RasterToSVGConverter:
         if DEBUG.get('save_intermediate_steps', False):
             save_debug_image(background_image, '05_containers_removed_background.png',
                            DEBUG.get('output_dir', './debug_output'))
+        
+        # Save background debug data (Stage 4: Background Extraction)
+        background_debug_data = self._save_background_debug(background_image, width, height)
 
         
         # ============================================================
@@ -346,6 +363,19 @@ class RasterToSVGConverter:
         logger.info(f"Images in containers: {len(images_in_containers)}")
         logger.info(f"Standalone images: {len(images_outside)}")
         logger.info(f"Output saved to: {output_svg_path}")
+        
+        # Save combined debug data as JSON export
+        if DEBUG.get('save_intermediate_steps', False):
+            logger.info("Saving combined debug data as JSON export...")
+            self._save_combined_debug_json(
+                input_path=input_path,
+                output_path=output_svg_path,
+                text_data=text_debug_data,
+                image_data=image_debug_data,
+                container_data=container_debug_data,
+                background_data=background_debug_data,
+                statistics=results['statistics']
+            )
         
         return results
     
@@ -435,6 +465,321 @@ class RasterToSVGConverter:
         logger.info(f"Batch conversion complete: {results['successful']}/{len(files)} successful")
         
         return results
+    
+    def _get_debug_dir(self) -> str:
+        """Get the debug output directory path"""
+        return DEBUG.get('output_dir', './debug_output')
+    
+    def _ensure_debug_subdir(self, subdir: str) -> str:
+        """Ensure a subdirectory exists in the debug output folder"""
+        path = os.path.join(self._get_debug_dir(), subdir)
+        os.makedirs(path, exist_ok=True)
+        return path
+    
+    def _save_text_elements_debug(self, original_image: np.ndarray, 
+                                   text_elements: List[TextElement]) -> Dict:
+        """
+        Save text elements debug data: JSON metadata and cropped text images.
+        
+        Args:
+            original_image: The original input image
+            text_elements: List of detected TextElement objects
+            
+        Returns:
+            Dictionary with text elements metadata for combined JSON
+        """
+        if not DEBUG.get('save_intermediate_steps', False):
+            return {}
+        
+        logger.info("Saving text elements debug data...")
+        text_dir = self._ensure_debug_subdir('text_elements')
+        
+        text_data = {
+            'stage': 'text_detection',
+            'count': int(len(text_elements)),
+            'elements': []
+        }
+        
+        for i, elem in enumerate(text_elements):
+            # Crop the text region from original image
+            bbox = elem.bbox
+            cropped = original_image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
+            
+            # Save cropped image
+            crop_filename = f"text_{i:03d}.png"
+            crop_path = os.path.join(text_dir, crop_filename)
+            cv2.imwrite(crop_path, cropped)
+            
+            # Build element metadata
+            element_data = {
+                'id': int(i),
+                'text': str(elem.text),
+                'bbox': {
+                    'x': int(bbox.x),
+                    'y': int(bbox.y),
+                    'width': int(bbox.w),
+                    'height': int(bbox.h),
+                    'x2': int(bbox.x2),
+                    'y2': int(bbox.y2)
+                },
+                'font': {
+                    'family': str(elem.font_family),
+                    'size': int(elem.font_size),
+                    'weight': str(elem.font_weight),
+                    'style': str(elem.font_style),
+                    'classified_font': str(elem.classified_font) if elem.classified_font else '',
+                    'classified_font_version': str(elem.classified_font_version) if elem.classified_font_version else '',
+                    'classification_confidence': float(elem.font_classification_confidence),
+                    'fallback_fonts': [str(f) for f in elem.fallback_fonts],
+                    'line_height': float(elem.line_height),
+                    'letter_spacing': float(elem.letter_spacing)
+                },
+                'color': str(elem.color),
+                'confidence': float(elem.confidence),
+                'num_lines': int(elem.num_lines),
+                'cropped_image': str(crop_filename)
+            }
+            text_data['elements'].append(element_data)
+        
+        # Save text elements JSON
+        json_path = os.path.join(text_dir, 'text_elements.json')
+        with open(json_path, 'w') as f:
+            json.dump(text_data, f, indent=2)
+        
+        logger.info(f"Saved {len(text_elements)} text elements to {text_dir}")
+        return text_data
+    
+    def _save_image_elements_debug(self, original_image: np.ndarray,
+                                    image_elements: List[ImageElement],
+                                    stage_name: str = 'images') -> Dict:
+        """
+        Save image elements debug data: JSON metadata and cropped images.
+        
+        Args:
+            original_image: The image to crop from (text-removed image for accurate crops)
+            image_elements: List of detected ImageElement objects
+            stage_name: Name for the output subfolder
+            
+        Returns:
+            Dictionary with image elements metadata for combined JSON
+        """
+        if not DEBUG.get('save_intermediate_steps', False):
+            return {}
+        
+        logger.info(f"Saving image elements debug data ({stage_name})...")
+        image_dir = self._ensure_debug_subdir('image_elements')
+        
+        image_data = {
+            'stage': 'image_detection',
+            'count': int(len(image_elements)),
+            'elements': []
+        }
+        
+        for i, elem in enumerate(image_elements):
+            bbox = elem.bbox
+            
+            # Crop the image region
+            cropped = original_image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
+            
+            # Save cropped image
+            crop_filename = f"image_{i:03d}.png"
+            crop_path = os.path.join(image_dir, crop_filename)
+            cv2.imwrite(crop_path, cropped)
+            
+            # Build element metadata
+            element_data = {
+                'id': int(i),
+                'bbox': {
+                    'x': int(bbox.x),
+                    'y': int(bbox.y),
+                    'width': int(bbox.w),
+                    'height': int(bbox.h),
+                    'x2': int(bbox.x2),
+                    'y2': int(bbox.y2)
+                },
+                'is_photo': bool(elem.is_photo),
+                'dominant_colors': [[int(c) for c in color] for color in elem.dominant_colors] if elem.dominant_colors else [],
+                'area': int(bbox.w * bbox.h),
+                'aspect_ratio': float(round(bbox.w / bbox.h, 3)) if bbox.h > 0 else 0.0,
+                'cropped_image': str(crop_filename)
+            }
+            image_data['elements'].append(element_data)
+        
+        # Save image elements JSON
+        json_path = os.path.join(image_dir, 'image_elements.json')
+        with open(json_path, 'w') as f:
+            json.dump(image_data, f, indent=2)
+        
+        logger.info(f"Saved {len(image_elements)} image elements to {image_dir}")
+        return image_data
+    
+    def _save_container_elements_debug(self, cleaned_image: np.ndarray,
+                                        containers: List[ContainerElement]) -> Dict:
+        """
+        Save container elements debug data: JSON metadata and cropped container images.
+        
+        Args:
+            cleaned_image: The cleaned image (after text/image removal) to crop from
+            containers: List of detected ContainerElement objects
+            
+        Returns:
+            Dictionary with container elements metadata for combined JSON
+        """
+        if not DEBUG.get('save_intermediate_steps', False):
+            return {}
+        
+        logger.info("Saving container elements debug data...")
+        container_dir = self._ensure_debug_subdir('container_elements')
+        
+        container_data = {
+            'stage': 'container_detection',
+            'count': int(len(containers)),
+            'elements': []
+        }
+        
+        for i, container in enumerate(containers):
+            bbox = container.bbox
+            
+            # Crop the container region
+            cropped = cleaned_image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
+            
+            # Save cropped image
+            crop_filename = f"container_{i:03d}.png"
+            crop_path = os.path.join(container_dir, crop_filename)
+            cv2.imwrite(crop_path, cropped)
+            
+            # Build element metadata
+            element_data = {
+                'id': int(i),
+                'container_type': str(container.container_type.value) if hasattr(container.container_type, 'value') else str(container.container_type),
+                'bbox': {
+                    'x': int(bbox.x),
+                    'y': int(bbox.y),
+                    'width': int(bbox.w),
+                    'height': int(bbox.h),
+                    'x2': int(bbox.x2),
+                    'y2': int(bbox.y2)
+                },
+                'fill_color': str(container.fill_color),
+                'stroke_color': str(container.stroke_color),
+                'stroke_width': int(container.stroke_width),
+                'corner_radius': int(container.corner_radius),
+                'contains_image': bool(container.contains_image),
+                'contains_text': bool(container.contains_text),
+                'area': int(bbox.w * bbox.h),
+                'aspect_ratio': float(round(bbox.w / bbox.h, 3)) if bbox.h > 0 else 0.0,
+                'cropped_image': str(crop_filename)
+            }
+            container_data['elements'].append(element_data)
+        
+        # Save container elements JSON
+        json_path = os.path.join(container_dir, 'container_elements.json')
+        with open(json_path, 'w') as f:
+            json.dump(container_data, f, indent=2)
+        
+        logger.info(f"Saved {len(containers)} container elements to {container_dir}")
+        return container_data
+    
+    def _save_background_debug(self, background_image: np.ndarray,
+                                original_width: int, original_height: int) -> Dict:
+        """
+        Save background debug data: the extracted background image and JSON metadata.
+        
+        Args:
+            background_image: The extracted background image (all elements removed)
+            original_width: Original image width
+            original_height: Original image height
+            
+        Returns:
+            Dictionary with background metadata for combined JSON
+        """
+        if not DEBUG.get('save_intermediate_steps', False):
+            return {}
+        
+        logger.info("Saving background debug data...")
+        bg_dir = self._ensure_debug_subdir('background')
+        
+        # Save background image
+        bg_filename = 'background.png'
+        bg_path = os.path.join(bg_dir, bg_filename)
+        cv2.imwrite(bg_path, background_image)
+        
+        # Calculate dominant colors in background
+        # Sample from center region to avoid edge artifacts
+        h, w = background_image.shape[:2]
+        sample_region = background_image[h//4:3*h//4, w//4:3*w//4]
+        avg_color = np.mean(sample_region, axis=(0, 1)).astype(int)
+        avg_color_hex = '#{:02x}{:02x}{:02x}'.format(avg_color[2], avg_color[1], avg_color[0])  # BGR to RGB
+        
+        background_data = {
+            'stage': 'background_extraction',
+            'dimensions': {
+                'width': int(original_width),
+                'height': int(original_height)
+            },
+            'average_color': {
+                'rgb': [int(avg_color[2]), int(avg_color[1]), int(avg_color[0])],  # BGR to RGB
+                'hex': str(avg_color_hex)
+            },
+            'background_image': str(bg_filename)
+        }
+        
+        # Save background JSON
+        json_path = os.path.join(bg_dir, 'background.json')
+        with open(json_path, 'w') as f:
+            json.dump(background_data, f, indent=2)
+        
+        logger.info(f"Saved background to {bg_dir}")
+        return background_data
+    
+    def _save_combined_debug_json(self, input_path: str, output_path: str,
+                                   text_data: Dict, image_data: Dict,
+                                   container_data: Dict, background_data: Dict,
+                                   statistics: Dict) -> str:
+        """
+        Save combined debug data from all stages into a single master JSON file.
+        
+        Args:
+            input_path: Path to the input image
+            output_path: Path to the output SVG
+            text_data: Text elements debug data
+            image_data: Image elements debug data
+            container_data: Container elements debug data
+            background_data: Background debug data
+            statistics: Conversion statistics
+            
+        Returns:
+            Path to the saved combined JSON file
+        """
+        if not DEBUG.get('save_intermediate_steps', False):
+            return ''
+        
+        logger.info("Saving combined debug JSON...")
+        
+        combined_data = {
+            'metadata': {
+                'timestamp': datetime.now().isoformat(),
+                'input_file': input_path,
+                'output_file': output_path,
+                'debug_output_dir': self._get_debug_dir()
+            },
+            'statistics': statistics,
+            'stages': {
+                'text_detection': text_data,
+                'image_detection': image_data,
+                'container_detection': container_data,
+                'background_extraction': background_data
+            }
+        }
+        
+        # Save combined JSON
+        json_filename = 'combined_extraction_data.json'
+        json_path = os.path.join(self._get_debug_dir(), json_filename)
+        with open(json_path, 'w') as f:
+            json.dump(combined_data, f, indent=2)
+        
+        logger.info(f"Saved combined debug data to {json_path}")
+        return json_path
 
 
 def main():

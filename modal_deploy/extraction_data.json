@@ -1,10 +1,11 @@
 {
   "metadata": {
-    "timestamp": "2026-01-28T05:04:23.342403",
-    "input_file": "/tmp/tmpvtderyyn.png",
+    "timestamp": "2026-01-28T05:10:17.915857",
+    "input_file": "/tmp/tmphcbeoqvw.png",
     "output_file": null,
     "s3_bucket": "layoutlabs-temp",
-    "s3_prefix": "extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e"
+    "s3_prefix": "extractions/f960337147e144b7b7880bf23bca2c7f",
+    "json_s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/extraction_data.json"
   },
   "statistics": {
     "text_elements": 45,
@@ -53,7 +54,7 @@
           "confidence": 0.9912745994976185,
           "num_lines": 1,
           "cropped_image": "text_000.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_000.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_000.png"
         },
         {
           "id": 1,
@@ -85,7 +86,7 @@
           "confidence": 0.7952360765027617,
           "num_lines": 1,
           "cropped_image": "text_001.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_001.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_001.png"
         },
         {
           "id": 2,
@@ -117,7 +118,7 @@
           "confidence": 0.7132690541617193,
           "num_lines": 1,
           "cropped_image": "text_002.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_002.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_002.png"
         },
         {
           "id": 3,
@@ -149,7 +150,7 @@
           "confidence": 0.9995809038829945,
           "num_lines": 1,
           "cropped_image": "text_003.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_003.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_003.png"
         },
         {
           "id": 4,
@@ -181,7 +182,7 @@
           "confidence": 0.9970597724142228,
           "num_lines": 1,
           "cropped_image": "text_004.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_004.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_004.png"
         },
         {
           "id": 5,
@@ -213,7 +214,7 @@
           "confidence": 0.9397044934416423,
           "num_lines": 1,
           "cropped_image": "text_005.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_005.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_005.png"
         },
         {
           "id": 6,
@@ -245,7 +246,7 @@
           "confidence": 0.9207911099862995,
           "num_lines": 1,
           "cropped_image": "text_006.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_006.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_006.png"
         },
         {
           "id": 7,
@@ -277,7 +278,7 @@
           "confidence": 0.7937580549045501,
           "num_lines": 1,
           "cropped_image": "text_007.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_007.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_007.png"
         },
         {
           "id": 8,
@@ -309,7 +310,7 @@
           "confidence": 0.6920308263264755,
           "num_lines": 1,
           "cropped_image": "text_008.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_008.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_008.png"
         },
         {
           "id": 9,
@@ -341,7 +342,7 @@
           "confidence": 0.9999958340918067,
           "num_lines": 1,
           "cropped_image": "text_009.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_009.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_009.png"
         },
         {
           "id": 10,
@@ -373,7 +374,7 @@
           "confidence": 0.4948939079118413,
           "num_lines": 1,
           "cropped_image": "text_010.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_010.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_010.png"
         },
         {
           "id": 11,
@@ -405,7 +406,7 @@
           "confidence": 0.5106787824425659,
           "num_lines": 1,
           "cropped_image": "text_011.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_011.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_011.png"
         },
         {
           "id": 12,
@@ -437,7 +438,7 @@
           "confidence": 0.6877630014465643,
           "num_lines": 1,
           "cropped_image": "text_012.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_012.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_012.png"
         },
         {
           "id": 13,
@@ -469,7 +470,7 @@
           "confidence": 0.9265620805761923,
           "num_lines": 1,
           "cropped_image": "text_013.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_013.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_013.png"
         },
         {
           "id": 14,
@@ -501,7 +502,7 @@
           "confidence": 0.999871635948771,
           "num_lines": 1,
           "cropped_image": "text_014.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_014.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_014.png"
         },
         {
           "id": 15,
@@ -533,7 +534,7 @@
           "confidence": 0.9999815659277589,
           "num_lines": 1,
           "cropped_image": "text_015.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_015.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_015.png"
         },
         {
           "id": 16,
@@ -565,7 +566,7 @@
           "confidence": 0.9006081294694924,
           "num_lines": 1,
           "cropped_image": "text_016.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_016.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_016.png"
         },
         {
           "id": 17,
@@ -597,7 +598,7 @@
           "confidence": 0.9343696592352851,
           "num_lines": 1,
           "cropped_image": "text_017.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_017.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_017.png"
         },
         {
           "id": 18,
@@ -629,7 +630,7 @@
           "confidence": 0.9996902469413863,
           "num_lines": 1,
           "cropped_image": "text_018.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_018.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_018.png"
         },
         {
           "id": 19,
@@ -661,7 +662,7 @@
           "confidence": 0.9685556222046099,
           "num_lines": 1,
           "cropped_image": "text_019.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_019.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_019.png"
         },
         {
           "id": 20,
@@ -693,7 +694,7 @@
           "confidence": 0.9992434277218307,
           "num_lines": 1,
           "cropped_image": "text_020.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_020.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_020.png"
         },
         {
           "id": 21,
@@ -725,7 +726,7 @@
           "confidence": 0.8976600931938122,
           "num_lines": 1,
           "cropped_image": "text_021.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_021.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_021.png"
         },
         {
           "id": 22,
@@ -757,7 +758,7 @@
           "confidence": 0.9978077052381873,
           "num_lines": 1,
           "cropped_image": "text_022.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_022.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_022.png"
         },
         {
           "id": 23,
@@ -789,7 +790,7 @@
           "confidence": 0.9945075567876702,
           "num_lines": 1,
           "cropped_image": "text_023.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_023.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_023.png"
         },
         {
           "id": 24,
@@ -821,7 +822,7 @@
           "confidence": 0.999540393506928,
           "num_lines": 1,
           "cropped_image": "text_024.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_024.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_024.png"
         },
         {
           "id": 25,
@@ -853,7 +854,7 @@
           "confidence": 0.774849816035026,
           "num_lines": 1,
           "cropped_image": "text_025.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_025.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_025.png"
         },
         {
           "id": 26,
@@ -885,7 +886,7 @@
           "confidence": 0.99932299067367,
           "num_lines": 1,
           "cropped_image": "text_026.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_026.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_026.png"
         },
         {
           "id": 27,
@@ -917,7 +918,7 @@
           "confidence": 0.8983248872443176,
           "num_lines": 1,
           "cropped_image": "text_027.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_027.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_027.png"
         },
         {
           "id": 28,
@@ -949,7 +950,7 @@
           "confidence": 0.9618421107028505,
           "num_lines": 1,
           "cropped_image": "text_028.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_028.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_028.png"
         },
         {
           "id": 29,
@@ -981,7 +982,7 @@
           "confidence": 0.5813905777356182,
           "num_lines": 1,
           "cropped_image": "text_029.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_029.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_029.png"
         },
         {
           "id": 30,
@@ -1013,7 +1014,7 @@
           "confidence": 0.9996371349201185,
           "num_lines": 1,
           "cropped_image": "text_030.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_030.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_030.png"
         },
         {
           "id": 31,
@@ -1045,7 +1046,7 @@
           "confidence": 0.7317511170107986,
           "num_lines": 1,
           "cropped_image": "text_031.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_031.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_031.png"
         },
         {
           "id": 32,
@@ -1077,7 +1078,7 @@
           "confidence": 0.999989430081729,
           "num_lines": 1,
           "cropped_image": "text_032.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_032.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_032.png"
         },
         {
           "id": 33,
@@ -1109,7 +1110,7 @@
           "confidence": 0.9060501401816612,
           "num_lines": 1,
           "cropped_image": "text_033.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_033.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_033.png"
         },
         {
           "id": 34,
@@ -1141,7 +1142,7 @@
           "confidence": 0.9999967217445374,
           "num_lines": 1,
           "cropped_image": "text_034.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_034.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_034.png"
         },
         {
           "id": 35,
@@ -1173,7 +1174,7 @@
           "confidence": 0.7486190815675398,
           "num_lines": 1,
           "cropped_image": "text_035.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_035.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_035.png"
         },
         {
           "id": 36,
@@ -1205,7 +1206,7 @@
           "confidence": 0.9976994726305864,
           "num_lines": 1,
           "cropped_image": "text_036.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_036.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_036.png"
         },
         {
           "id": 37,
@@ -1237,7 +1238,7 @@
           "confidence": 0.9999464729089931,
           "num_lines": 1,
           "cropped_image": "text_037.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_037.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_037.png"
         },
         {
           "id": 38,
@@ -1269,7 +1270,7 @@
           "confidence": 0.6830257186070088,
           "num_lines": 1,
           "cropped_image": "text_038.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_038.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_038.png"
         },
         {
           "id": 39,
@@ -1301,7 +1302,7 @@
           "confidence": 0.11273353812587389,
           "num_lines": 1,
           "cropped_image": "text_039.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_039.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_039.png"
         },
         {
           "id": 40,
@@ -1333,7 +1334,7 @@
           "confidence": 0.9106290982005204,
           "num_lines": 1,
           "cropped_image": "text_040.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_040.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_040.png"
         },
         {
           "id": 41,
@@ -1365,7 +1366,7 @@
           "confidence": 0.9991734306406401,
           "num_lines": 1,
           "cropped_image": "text_041.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_041.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_041.png"
         },
         {
           "id": 42,
@@ -1397,7 +1398,7 @@
           "confidence": 0.999751986113184,
           "num_lines": 1,
           "cropped_image": "text_042.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_042.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_042.png"
         },
         {
           "id": 43,
@@ -1429,7 +1430,7 @@
           "confidence": 0.6818402706995724,
           "num_lines": 1,
           "cropped_image": "text_043.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_043.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_043.png"
         },
         {
           "id": 44,
@@ -1461,7 +1462,7 @@
           "confidence": 0.5649442653450999,
           "num_lines": 1,
           "cropped_image": "text_044.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/text_elements/text_044.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/text_elements/text_044.png"
         }
       ]
     },
@@ -1510,7 +1511,7 @@
           "area": 17667,
           "aspect_ratio": 1.291,
           "cropped_image": "image_000.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_000.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_000.png"
         },
         {
           "id": 1,
@@ -1553,7 +1554,7 @@
           "area": 13806,
           "aspect_ratio": 0.992,
           "cropped_image": "image_001.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_001.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_001.png"
         },
         {
           "id": 2,
@@ -1596,7 +1597,7 @@
           "area": 13689,
           "aspect_ratio": 1.0,
           "cropped_image": "image_002.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_002.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_002.png"
         },
         {
           "id": 3,
@@ -1639,7 +1640,7 @@
           "area": 13689,
           "aspect_ratio": 1.0,
           "cropped_image": "image_003.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_003.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_003.png"
         },
         {
           "id": 4,
@@ -1682,7 +1683,7 @@
           "area": 13689,
           "aspect_ratio": 1.0,
           "cropped_image": "image_004.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_004.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_004.png"
         },
         {
           "id": 5,
@@ -1725,7 +1726,7 @@
           "area": 13688,
           "aspect_ratio": 0.983,
           "cropped_image": "image_005.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_005.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_005.png"
         },
         {
           "id": 6,
@@ -1768,7 +1769,7 @@
           "area": 9292,
           "aspect_ratio": 0.911,
           "cropped_image": "image_006.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_006.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_006.png"
         },
         {
           "id": 7,
@@ -1811,7 +1812,7 @@
           "area": 2025,
           "aspect_ratio": 1.0,
           "cropped_image": "image_007.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_007.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_007.png"
         },
         {
           "id": 8,
@@ -1854,7 +1855,7 @@
           "area": 1980,
           "aspect_ratio": 0.978,
           "cropped_image": "image_008.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_008.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_008.png"
         },
         {
           "id": 9,
@@ -1897,7 +1898,7 @@
           "area": 1974,
           "aspect_ratio": 0.894,
           "cropped_image": "image_009.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_009.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_009.png"
         },
         {
           "id": 10,
@@ -1940,7 +1941,7 @@
           "area": 1763,
           "aspect_ratio": 0.953,
           "cropped_image": "image_010.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_010.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_010.png"
         },
         {
           "id": 11,
@@ -1983,7 +1984,7 @@
           "area": 1640,
           "aspect_ratio": 1.025,
           "cropped_image": "image_011.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_011.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_011.png"
         },
         {
           "id": 12,
@@ -2026,7 +2027,7 @@
           "area": 1419,
           "aspect_ratio": 1.303,
           "cropped_image": "image_012.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_012.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_012.png"
         },
         {
           "id": 13,
@@ -2069,7 +2070,7 @@
           "area": 1258,
           "aspect_ratio": 1.088,
           "cropped_image": "image_013.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_013.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_013.png"
         },
         {
           "id": 14,
@@ -2112,7 +2113,7 @@
           "area": 1258,
           "aspect_ratio": 1.088,
           "cropped_image": "image_014.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_014.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_014.png"
         },
         {
           "id": 15,
@@ -2155,7 +2156,7 @@
           "area": 1258,
           "aspect_ratio": 1.088,
           "cropped_image": "image_015.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_015.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_015.png"
         },
         {
           "id": 16,
@@ -2198,7 +2199,7 @@
           "area": 1258,
           "aspect_ratio": 1.088,
           "cropped_image": "image_016.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_016.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_016.png"
         },
         {
           "id": 17,
@@ -2241,7 +2242,7 @@
           "area": 1248,
           "aspect_ratio": 1.219,
           "cropped_image": "image_017.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_017.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_017.png"
         },
         {
           "id": 18,
@@ -2284,7 +2285,7 @@
           "area": 1170,
           "aspect_ratio": 1.731,
           "cropped_image": "image_018.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_018.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_018.png"
         },
         {
           "id": 19,
@@ -2327,7 +2328,7 @@
           "area": 1161,
           "aspect_ratio": 1.593,
           "cropped_image": "image_019.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_019.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_019.png"
         },
         {
           "id": 20,
@@ -2370,7 +2371,7 @@
           "area": 1089,
           "aspect_ratio": 1.0,
           "cropped_image": "image_020.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_020.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_020.png"
         },
         {
           "id": 21,
@@ -2413,7 +2414,7 @@
           "area": 1032,
           "aspect_ratio": 1.792,
           "cropped_image": "image_021.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_021.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_021.png"
         },
         {
           "id": 22,
@@ -2456,7 +2457,7 @@
           "area": 768,
           "aspect_ratio": 1.333,
           "cropped_image": "image_022.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_022.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_022.png"
         },
         {
           "id": 23,
@@ -2499,7 +2500,7 @@
           "area": 760,
           "aspect_ratio": 1.9,
           "cropped_image": "image_023.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/image_elements/image_023.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/image_elements/image_023.png"
         }
       ]
     },
@@ -2527,7 +2528,7 @@
           "area": 107750,
           "aspect_ratio": 6.896,
           "cropped_image": "container_000.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_000.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_000.png"
         },
         {
           "id": 1,
@@ -2549,7 +2550,7 @@
           "area": 79722,
           "aspect_ratio": 1.198,
           "cropped_image": "container_001.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_001.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_001.png"
         },
         {
           "id": 2,
@@ -2571,7 +2572,7 @@
           "area": 76884,
           "aspect_ratio": 1.155,
           "cropped_image": "container_002.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_002.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_002.png"
         },
         {
           "id": 3,
@@ -2593,7 +2594,7 @@
           "area": 75852,
           "aspect_ratio": 1.14,
           "cropped_image": "container_003.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_003.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_003.png"
         },
         {
           "id": 4,
@@ -2615,7 +2616,7 @@
           "area": 22650,
           "aspect_ratio": 4.027,
           "cropped_image": "container_004.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_004.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_004.png"
         },
         {
           "id": 5,
@@ -2637,7 +2638,7 @@
           "area": 21238,
           "aspect_ratio": 3.878,
           "cropped_image": "container_005.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_005.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_005.png"
         },
         {
           "id": 6,
@@ -2659,7 +2660,7 @@
           "area": 20377,
           "aspect_ratio": 4.042,
           "cropped_image": "container_006.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_006.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_006.png"
         },
         {
           "id": 7,
@@ -2681,7 +2682,7 @@
           "area": 6084,
           "aspect_ratio": 1.0,
           "cropped_image": "container_007.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_007.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_007.png"
         },
         {
           "id": 8,
@@ -2703,7 +2704,7 @@
           "area": 3068,
           "aspect_ratio": 1.135,
           "cropped_image": "container_008.png",
-          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/container_elements/container_008.png"
+          "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/container_elements/container_008.png"
         }
       ]
     },
@@ -2722,7 +2723,7 @@
         "hex": "#fdfefd"
       },
       "background_image": "background.png",
-      "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/b2f6e2f3d5c646df91b6ac24e6d9cb9e/background/background.png"
+      "s3_url": "https://layoutlabs-temp.s3.ap-south-1.amazonaws.com/extractions/f960337147e144b7b7880bf23bca2c7f/background/background.png"
     }
   }
 }

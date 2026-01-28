@@ -859,7 +859,7 @@ class RasterToSVGConverter:
                                    container_data: Dict, background_data: Dict,
                                    statistics: Dict) -> Dict:
         """
-        Create combined debug data from all stages. Returns the JSON dict directly.
+        Create combined debug data from all stages and upload to S3. Returns the JSON dict.
         
         Args:
             input_path: Path to the input image
@@ -871,7 +871,7 @@ class RasterToSVGConverter:
             statistics: Conversion statistics
             
         Returns:
-            Combined extraction data as dictionary
+            Combined extraction data as dictionary with S3 URL if uploaded
         """
         logger.info("Creating combined extraction JSON...")
         
@@ -891,6 +891,18 @@ class RasterToSVGConverter:
                 'background_extraction': background_data
             }
         }
+        
+        # Upload JSON to S3 if enabled
+        if self.use_s3:
+            logger.info("Uploading extraction JSON to S3...")
+            json_filename = 'extraction_data.json'
+            s3_key = f"{self.s3_prefix}/{json_filename}"
+            json_bytes = json.dumps(combined_data, indent=2).encode('utf-8')
+            s3_url = self._upload_bytes_to_s3(json_bytes, s3_key, 'application/json')
+            
+            # Add S3 URL to metadata
+            combined_data['metadata']['json_s3_url'] = s3_url
+            logger.info(f"Extraction JSON uploaded to S3: {s3_url}")
         
         logger.info("Combined extraction JSON created")
         return combined_data

@@ -35,6 +35,7 @@ image = (
         "fontTools>=4.42.0",
         "shapely>=2.0.0",
         "easyocr>=1.7.0",
+        "requests>=2.31.0",
     ).add_local_dir("../dev_destructure", remote_path="/root/dev_destructure")
 )
 
@@ -54,7 +55,8 @@ image = (
     gpu="L40S"
 )
 def convert_image_to_svg(
-    image_bytes: bytes,
+    image_url: str = None,
+    image_bytes: bytes = None,
     output_filename: str = "output.svg",
     debug: bool = False,
     ocr_confidence: int = 60,
@@ -64,7 +66,8 @@ def convert_image_to_svg(
     Convert a raster infographic image to SVG
     
     Args:
-        image_bytes: Input image as bytes
+        image_url: URL of the input image (preferred method)
+        image_bytes: Input image as bytes (alternative to image_url)
         output_filename: Name for output SVG file
         debug: Enable debug mode (saves intermediate steps)
         ocr_confidence: Minimum OCR confidence threshold (0-100)
@@ -77,6 +80,7 @@ def convert_image_to_svg(
     import tempfile
     import cv2
     import numpy as np
+    import requests
     
     # Add the dev_destructure directory to Python path
     sys.path.insert(0, "/root/dev_destructure")
@@ -92,6 +96,16 @@ def convert_image_to_svg(
     OCR_CONFIG['min_confidence'] = ocr_confidence
     
     print(f"Starting conversion with debug={debug}, ocr_confidence={ocr_confidence}")
+    
+    # Get image bytes from URL if provided
+    if image_url:
+        print(f"Downloading image from: {image_url}")
+        response = requests.get(image_url, timeout=30)
+        response.raise_for_status()
+        image_bytes = response.content
+        print(f"Downloaded {len(image_bytes)} bytes")
+    elif image_bytes is None:
+        raise ValueError("Either image_url or image_bytes must be provided")
     
     # Decode image from bytes
     nparr = np.frombuffer(image_bytes, np.uint8)
@@ -216,7 +230,8 @@ def convert_batch_images(
 
 @app.local_entrypoint()
 def main(
-    input_path: str,
+    input_path: str = None,
+    input_url: str = None,
     output_path: str = "output.svg",
     batch: bool = False,
     pattern: str = "*.png",
@@ -228,8 +243,11 @@ def main(
     Local entrypoint for Modal CLI usage
     
     Usage:
-        # Single file
+        # Single file from local path
         modal run main.py --input-path input.png --output-path output.svg
+        
+        # Single file from URL
+        modal run main.py --input-url https://example.com/image.png --output-path output.svg
         
         # Batch mode
         modal run main.py --input-path ./images --output-path ./output --batch --pattern "*.png"
@@ -243,6 +261,10 @@ def main(
     print(f"{'='*60}")
     print("RASTER TO SVG CONVERTER - Modal Deployment")
     print(f"{'='*60}\n")
+    
+    if not input_path and not input_url:
+        print("Error: Either --input-path or --input-url must be provided")
+        return
     
     if batch:
         # Batch mode: process directory
@@ -291,25 +313,39 @@ def main(
         
     else:
         # Single file mode
-        input_file = Path(input_path)
-        if not input_file.exists():
-            print(f"Error: File not found: {input_path}")
-            return
-        
-        # Read input image
-        with open(input_file, 'rb') as f:
-            image_bytes = f.read()
-        
-        print(f"Converting '{input_path}' to '{output_path}'...\n")
-        
-        # Convert on Modal
-        result = convert_image_to_svg.remote(
-            image_bytes=image_bytes,
-            output_filename=output_path,
-            debug=debug,
-            ocr_confidence=ocr_confidence,
-            convert_images=convert_images,
-        )
+        if input_url:
+            # URL mode
+            print(f"Converting from URL '{input_url}' to '{output_path}'...\n")
+            
+            # Convert on Modal
+            result = convert_image_to_svg.remote(
+                image_url=input_url,
+                output_filename=output_path,
+                debug=debug,
+                ocr_confidence=ocr_confidence,
+                convert_images=convert_images,
+            )
+        else:
+            # Local file mode
+            input_file = Path(input_path)
+            if not input_file.exists():
+                print(f"Error: File not found: {input_path}")
+                return
+            
+            # Read input image
+            with open(input_file, 'rb') as f:
+                image_bytes = f.read()
+            
+            print(f"Converting '{input_path}' to '{output_path}'...\n")
+            
+            # Convert on Modal
+            result = convert_image_to_svg.remote(
+                image_bytes=image_bytes,
+                output_filename=output_path,
+                debug=debug,
+                ocr_confidence=ocr_confidence,
+                convert_images=convert_images,
+            )
         
         # Save SVG output
         output_file = Path(output_path)

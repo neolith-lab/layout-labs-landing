@@ -62,7 +62,7 @@ def convert_image_to_svg(
     image_url: str = None,
     image_bytes: bytes = None,
     s3_bucket: str = None,  # S3 bucket for storing extracted elements
-    generate_excalidraw: bool = False,  # Generate Excalidraw JSON
+    generate_excalidraw: bool = True,  # Generate Excalidraw JSON
     download_images: bool = True,  # Download images for Excalidraw embedding
 ) -> dict:
     """

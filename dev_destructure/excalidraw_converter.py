@@ -33,6 +33,71 @@ class ExcalidrawConverter:
         else:
             return getattr(obj, key, default)
     
+    def _calculate_font_size_for_box(self, text: str, box_width: float, box_height: float, 
+                                      original_font_size: int) -> int:
+        """
+        Calculate an appropriate font size that fits within the bounding box.
+        
+        Uses heuristic estimation based on:
+        - Average character width: ~0.6 * font_size for most fonts
+        - Line height: ~1.25 * font_size (Excalidraw's default line height)
+        - Number of lines and characters
+        
+        Args:
+            text: The text content
+            box_width: Available width in pixels
+            box_height: Available height in pixels
+            original_font_size: The original detected font size
+            
+        Returns:
+            Adjusted font size that should fit within the box
+        """
+        if not text or box_width <= 0 or box_height <= 0:
+            return max(10, min(original_font_size, 20))
+        
+        # Split text into lines
+        lines = text.split('\n') if '\n' in text else [text]
+        num_lines = len(lines)
+        
+        # Get the longest line
+        max_line_length = max(len(line) for line in lines) if lines else 1
+        
+        # Excalidraw uses line height of 1.25
+        line_height_multiplier = 1.25
+        
+        # Average character width is approximately 0.6 * font_size for proportional fonts
+        # (This is a heuristic; actual width depends on font and specific characters)
+        avg_char_width_multiplier = 0.6
+        
+        # Calculate font size based on height constraint
+        # Available height / (number of lines * line height multiplier)
+        font_size_from_height = box_height / (num_lines * line_height_multiplier)
+        
+        # Calculate font size based on width constraint
+        # Available width / (max line length * avg char width multiplier)
+        font_size_from_width = box_width / (max_line_length * avg_char_width_multiplier)
+        
+        # Use the smaller of the two constraints (most restrictive)
+        calculated_font_size = min(font_size_from_height, font_size_from_width)
+        
+        # Apply some sensible bounds
+        # Don't go too small (minimum 8px) or too large (cap at 120% of original or 72px)
+        min_font_size = 8
+        max_font_size = min(int(original_font_size * 1.2), 72)
+        
+        # Prefer to stay close to original if it fits reasonably
+        if original_font_size <= calculated_font_size * 1.1:
+            # Original size fits (with 10% tolerance)
+            final_font_size = original_font_size
+        else:
+            # Need to scale down, use calculated size
+            final_font_size = int(calculated_font_size * 0.9)  # 90% to add safety margin
+        
+        # Clamp to bounds
+        final_font_size = max(min_font_size, min(final_font_size, max_font_size))
+        
+        return final_font_size
+    
     def _create_base_element(self) -> Dict[str, Any]:
         """Create base properties that all Excalidraw elements need"""
         return {
@@ -233,7 +298,7 @@ class ExcalidrawConverter:
             x, y, w, h = 0, 0, 100, 25
         
         text = self._get_value(text_data, 'text', '')
-        font_size = self._get_value(text_data, 'font_size', 16)
+        original_font_size = self._get_value(text_data, 'font_size', 16)
         color = self._get_value(text_data, 'color', '#1e1e1e')
         
         # Map font family (if provided)
@@ -251,6 +316,9 @@ class ExcalidrawConverter:
         text_align = self._get_value(text_data, 'text_align', 'left')
         if text_align not in ['left', 'center', 'right']:
             text_align = 'left'
+        
+        # Calculate appropriate font size to fit within bounding box
+        font_size = self._calculate_font_size_for_box(text, w, h, original_font_size)
         
         element = {
             **self._create_base_element(),

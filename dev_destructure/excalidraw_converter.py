@@ -6,6 +6,7 @@ import uuid
 import time
 import base64
 import requests
+import cv2
 from typing import Dict, List, Any, Optional
 import random
 
@@ -129,9 +130,11 @@ class ExcalidrawConverter:
         """Convert an image to Excalidraw image element"""
         bbox = self._get_value(image, 'bbox', [0, 0, 100, 100])
         s3_url = self._get_value(image, 's3_url', self._get_value(image, 'url'))
+        image_data = self._get_value(image, 'image_data')
         
-        if not s3_url:
-            print("Warning: Image missing s3_url, skipping")
+        # Check if we have either S3 URL or local image data
+        if not s3_url and image_data is None:
+            print("Warning: Image missing both s3_url and image_data, skipping")
             return None
         
         # Handle BoundingBox object
@@ -152,12 +155,28 @@ class ExcalidrawConverter:
         else:
             x, y, w, h = 0, 0, 100, 100
         
-        # Download and encode image
-        img_base64, mime_type = self._download_and_encode_image(s3_url)
-        
-        if not img_base64:
-            print(f"Warning: Failed to encode image from {s3_url}, skipping")
-            return None
+        # Get image data - either download from S3 or encode local image
+        if s3_url:
+            # Download and encode image from S3 URL
+            img_base64, mime_type = self._download_and_encode_image(s3_url)
+            
+            if not img_base64:
+                print(f"Warning: Failed to encode image from {s3_url}, skipping")
+                return None
+        else:
+            # Encode local image_data (numpy array)
+            try:
+                # image_data is a numpy array, encode it to PNG
+                success, buffer = cv2.imencode('.png', image_data)
+                if not success:
+                    print("Warning: Failed to encode local image data, skipping")
+                    return None
+                
+                img_base64 = base64.b64encode(buffer).decode('utf-8')
+                mime_type = 'image/png'
+            except Exception as e:
+                print(f"Warning: Failed to encode local image data: {e}")
+                return None
         
         # Create file entry
         file_id = str(uuid.uuid4())

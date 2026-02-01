@@ -167,6 +167,8 @@ def convert_image_to_svg(
         # Generate Excalidraw JSON if requested
         if generate_excalidraw:
             from excalidraw_converter import ExcalidrawConverter
+            import json
+            import boto3
             
             print("Generating Excalidraw JSON...")
             excalidraw_converter = ExcalidrawConverter()
@@ -179,6 +181,50 @@ def convert_image_to_svg(
             
             response['excalidraw_json'] = excalidraw_json
             print(f"✓ Excalidraw JSON generated with {len(excalidraw_json['elements'])} elements")
+            
+            # Upload Excalidraw JSON to S3
+            try:
+                print("Uploading Excalidraw JSON to S3...")
+                
+                # Get S3 prefix from metadata
+                s3_prefix = result['extraction_data']['metadata'].get('s3_prefix', 'extractions/unknown')
+                excalidraw_s3_key = f"{s3_prefix}/output.excalidraw"
+                
+                # Save to temporary file first
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.excalidraw', delete=False) as tmp_file:
+                    json.dump(excalidraw_json, tmp_file, indent=2)
+                    tmp_excalidraw_path = tmp_file.name
+                
+                try:
+                    # Initialize S3 client
+                    aws_region = os.environ.get('AWS_REGION') or os.environ.get('AWS_DEFAULT_REGION')
+                    s3_client = boto3.client(
+                        's3',
+                        region_name=aws_region,
+                        aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
+                        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY')
+                    )
+                    
+                    # Upload to S3
+                    s3_client.upload_file(tmp_excalidraw_path, s3_bucket, excalidraw_s3_key)
+                    
+                    # Generate S3 URL
+                    if aws_region == 'us-east-1':
+                        excalidraw_s3_url = f"https://{s3_bucket}.s3.amazonaws.com/{excalidraw_s3_key}"
+                    else:
+                        excalidraw_s3_url = f"https://{s3_bucket}.s3.{aws_region}.amazonaws.com/{excalidraw_s3_key}"
+                    
+                    response['excalidraw_s3_url'] = excalidraw_s3_url
+                    print(f"✓ Excalidraw JSON uploaded to S3: {excalidraw_s3_url}")
+                    
+                finally:
+                    # Clean up temp file
+                    if os.path.exists(tmp_excalidraw_path):
+                        os.unlink(tmp_excalidraw_path)
+                        
+            except Exception as e:
+                print(f"Warning: Failed to upload Excalidraw JSON to S3: {e}")
+                # Continue anyway - the JSON is still in the response
         
         print(f"Conversion complete: {result['statistics']}")
         return response
@@ -301,7 +347,12 @@ def main(
         print(f"\n{'='*60}")
         print("EXCALIDRAW JSON GENERATED")
         print(f"{'='*60}")
-        print(f"✓ Excalidraw file saved to: {excalidraw_output}")
+        print(f"✓ Excalidraw file saved locally: {excalidraw_output}")
+        
+        # Display S3 URL if available
+        if 'excalidraw_s3_url' in result:
+            print(f"✓ Excalidraw file uploaded to S3: {result['excalidraw_s3_url']}")
+        
         print(f"\nYou can now:")
         print(f"  1. Open this file in your Excalidraw editor")
         print(f"  2. Click 'Load JSON' button")

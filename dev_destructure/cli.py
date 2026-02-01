@@ -35,6 +35,12 @@ Examples:
   
   # Upload to S3 with custom prefix
   python cli.py input.png -o output.svg --debug --s3-bucket my-bucket --s3-prefix my-project/v1
+  
+  # Generate Excalidraw JSON (with embedded images)
+  python cli.py input.png -o output.excalidraw --excalidraw
+  
+  # Generate Excalidraw JSON from S3 extraction (no image download)
+  python cli.py input.png --s3-bucket my-bucket --excalidraw --no-download-images
         """
     )
     
@@ -69,6 +75,12 @@ Examples:
                        help='S3 bucket name for storing extracted elements')
     parser.add_argument('--s3-prefix',
                        help='S3 prefix/folder for organizing uploads (default: auto-generated)')
+    
+    # Excalidraw export options
+    parser.add_argument('--excalidraw', action='store_true',
+                       help='Generate Excalidraw JSON format instead of SVG')
+    parser.add_argument('--no-download-images', action='store_true',
+                       help='Skip downloading images when generating Excalidraw JSON (faster, but no images in output)')
     
     args = parser.parse_args()
     
@@ -138,11 +150,52 @@ Examples:
             
         else:
             # Single file mode
-            output_path = args.output or 'output.svg'
+            output_path = args.output or ('output.excalidraw' if args.excalidraw else 'output.svg')
             print(f"Converting '{args.input}' to '{output_path}'...")
             
             result = converter.convert(args.input, output_path,
                                      convert_images_to_svg=args.convert_images)
+            
+            # Generate Excalidraw JSON if requested
+            if args.excalidraw:
+                from excalidraw_converter import ExcalidrawConverter
+                
+                print(f"\n{'='*60}")
+                print("GENERATING EXCALIDRAW JSON")
+                print(f"{'='*60}\n")
+                
+                excalidraw_converter = ExcalidrawConverter()
+                
+                # Determine if we should download images
+                download_images = not args.no_download_images
+                
+                if args.no_download_images:
+                    print("Note: Skipping image downloads (--no-download-images enabled)")
+                    print("      Images will not be embedded in the Excalidraw file\n")
+                
+                # Use 'elements' from result (contains text, images, containers, etc.)
+                excalidraw_path = excalidraw_converter.convert_to_file(
+                    extraction_data=result['elements'],
+                    statistics=result['statistics'],
+                    output_path=output_path,
+                    download_images=download_images
+                )
+                
+                print(f"\n{'='*60}")
+                print("EXCALIDRAW CONVERSION COMPLETE")
+                print(f"{'='*60}")
+                print(f"Excalidraw file: {excalidraw_path}")
+                print(f"\nYou can now:")
+                print(f"  1. Open this file in your Excalidraw editor")
+                print(f"  2. Click 'Load JSON' button")
+                print(f"  3. Select: {excalidraw_path}")
+                
+                if download_images:
+                    print(f"\n✓ Images are embedded as base64 in the file")
+                else:
+                    print(f"\n⚠ Images were NOT embedded (use without --no-download-images to embed)")
+                
+                return 0
             
             print(f"\n{'='*60}")
             print("CONVERSION COMPLETE")

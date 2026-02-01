@@ -62,18 +62,24 @@ def convert_image_to_svg(
     image_url: str = None,
     image_bytes: bytes = None,
     s3_bucket: str = None,  # S3 bucket for storing extracted elements
+    generate_excalidraw: bool = False,  # Generate Excalidraw JSON
+    download_images: bool = True,  # Download images for Excalidraw embedding
 ) -> dict:
     """
     Convert a raster infographic image and extract all elements to S3.
     Returns JSON with S3 URLs for all extracted elements.
+    Optionally generates Excalidraw JSON format.
     
     Args:
         image_url: URL of the input image (preferred method)
         image_bytes: Input image as bytes (alternative to image_url)
         s3_bucket: S3 bucket name for storing extracted elements (defaults to env var)
+        generate_excalidraw: If True, generates Excalidraw JSON format
+        download_images: If True, downloads and embeds images in Excalidraw JSON
     
     Returns:
-        Dictionary with extraction data and statistics (all elements uploaded to S3)
+        Dictionary with extraction data and statistics
+        If generate_excalidraw=True, also includes excalidraw_json field
     """
     import sys
     import tempfile
@@ -158,6 +164,22 @@ def convert_image_to_svg(
             'extraction_data': result['extraction_data']
         }
         
+        # Generate Excalidraw JSON if requested
+        if generate_excalidraw:
+            from excalidraw_converter import ExcalidrawConverter
+            
+            print("Generating Excalidraw JSON...")
+            excalidraw_converter = ExcalidrawConverter()
+            
+            excalidraw_json = excalidraw_converter.convert(
+                extraction_data=result['extraction_data'],
+                statistics=result['statistics'],
+                download_images=download_images
+            )
+            
+            response['excalidraw_json'] = excalidraw_json
+            print(f"✓ Excalidraw JSON generated with {len(excalidraw_json['elements'])} elements")
+        
         print(f"Conversion complete: {result['statistics']}")
         return response
         
@@ -172,9 +194,12 @@ def main(
     input_path: str = None,
     input_url: str = None,
     s3_bucket: str = None,
+    excalidraw: bool = False,
+    no_download_images: bool = False,
 ):
     """
     Local entrypoint for Modal CLI usage - Returns JSON with S3 URLs
+    Optionally generates Excalidraw JSON format
     
     Usage:
         # Single file from local path
@@ -185,13 +210,22 @@ def main(
         
         # With custom S3 bucket
         modal run main.py --input-path input.png --s3-bucket my-bucket
+        
+        # Generate Excalidraw JSON
+        modal run main.py --input-path input.png --excalidraw
+        
+        # Excalidraw without downloading images
+        modal run main.py --input-path input.png --excalidraw --no-download-images
     """
     import json
     from pathlib import Path
     
     print(f"{'='*60}")
     print("RASTER TO SVG CONVERTER - Modal Deployment")
-    print("JSON Extraction Mode (No SVG Generation)")
+    if excalidraw:
+        print("Excalidraw JSON Generation Mode")
+    else:
+        print("JSON Extraction Mode (No SVG Generation)")
     print(f"{'='*60}\n")
     
     if not input_path and not input_url:
@@ -206,6 +240,8 @@ def main(
         result = convert_image_to_svg.remote(
             image_url=input_url,
             s3_bucket=s3_bucket,
+            generate_excalidraw=excalidraw,
+            download_images=not no_download_images,
         )
     else:
         # Local file mode
@@ -224,6 +260,8 @@ def main(
         result = convert_image_to_svg.remote(
             image_bytes=image_bytes,
             s3_bucket=s3_bucket,
+            generate_excalidraw=excalidraw,
+            download_images=not no_download_images,
         )
     
     # Print results
@@ -253,3 +291,25 @@ def main(
     
     print(f"\n✓ Extraction data saved to: {output_json}")
     print(f"✓ All elements uploaded to S3!")
+    
+    # Save Excalidraw JSON if generated
+    if excalidraw and 'excalidraw_json' in result:
+        excalidraw_output = 'output.excalidraw'
+        with open(excalidraw_output, 'w') as f:
+            json.dump(result['excalidraw_json'], f, indent=2)
+        
+        print(f"\n{'='*60}")
+        print("EXCALIDRAW JSON GENERATED")
+        print(f"{'='*60}")
+        print(f"✓ Excalidraw file saved to: {excalidraw_output}")
+        print(f"\nYou can now:")
+        print(f"  1. Open this file in your Excalidraw editor")
+        print(f"  2. Click 'Load JSON' button")
+        print(f"  3. Select: {excalidraw_output}")
+        
+        if not no_download_images:
+            excalidraw_data = result['excalidraw_json']
+            num_files = len(excalidraw_data.get('files', {}))
+            print(f"\n✓ Images embedded: {num_files} files (base64 encoded)")
+        else:
+            print(f"\n⚠ Images NOT embedded (--no-download-images flag used)")

@@ -64,7 +64,7 @@ class RasterToSVGConverter:
         self.container_detector = ContainerDetector()
         self.background_filler = BackgroundFiller()
         self.svg_generator = SVGGenerator()
-        
+        import os
         # S3 configuration for storing extracted elements
         self.s3_bucket = s3_bucket
         self.s3_prefix = s3_prefix or f"extractions/{uuid.uuid4().hex}"
@@ -73,7 +73,6 @@ class RasterToSVGConverter:
         if self.use_s3:
             try:
                 import boto3
-                import os
                 
                 # Check for required AWS credentials
                 aws_access_key = os.environ.get('AWS_ACCESS_KEY_ID')

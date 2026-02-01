@@ -262,12 +262,16 @@ class RasterToSVGConverter:
             ], dtype=np.int32)
             
             # Create ContainerElement from ImageElement
+            # Extract colors from the ORIGINAL image (before infilling)
+            fill_color = self._extract_container_fill_color(original_image, bbox)
+            stroke_color = self._extract_container_stroke_color(original_image, contour)
+            
             container = ContainerElement(
                 container_type=ContainerType.RECTANGLE,
                 bbox=bbox,
                 contour=contour,
-                fill_color="#FFFFFF",  # Default white fill
-                stroke_color="#000000",  # Default black stroke
+                fill_color=fill_color,
+                stroke_color=stroke_color,
                 stroke_width=1,
                 corner_radius=0  # Will be estimated later if needed
             )
@@ -928,7 +932,50 @@ class RasterToSVGConverter:
         
         logger.info(f"Saved combined debug data to {json_path}")
         return json_path
-
+    
+    def _extract_container_fill_color(self, image: np.ndarray, bbox: BoundingBox) -> str:
+        """Extract the dominant fill color from a container region"""
+        try:
+            # Get the interior region (avoiding edges)
+            margin = 10
+            x1 = max(bbox.x + margin, 0)
+            y1 = max(bbox.y + margin, 0)
+            x2 = min(bbox.x2 - margin, image.shape[1])
+            y2 = min(bbox.y2 - margin, image.shape[0])
+            
+            if x2 <= x1 or y2 <= y1:
+                return '#FFFFFF'
+            
+            region = image[y1:y2, x1:x2]
+            
+            if region.size == 0:
+                return '#FFFFFF'
+            
+            # Get median color
+            from utils import rgb_to_hex
+            median_color = np.median(region.reshape(-1, 3), axis=0).astype(int)
+            return rgb_to_hex(tuple(median_color[::-1]))  # BGR to RGB
+        except:
+            return '#FFFFFF'
+    
+    def _extract_container_stroke_color(self, image: np.ndarray, contour: np.ndarray) -> str:
+        """Extract the stroke/border color from a container"""
+        try:
+            # Sample pixels along the contour
+            mask = np.zeros(image.shape[:2], dtype=np.uint8)
+            cv2.drawContours(mask, [contour], -1, 255, 3)
+            
+            pixels = image[mask > 0]
+            
+            if len(pixels) == 0:
+                return '#000000'
+            
+            from utils import rgb_to_hex
+            median_color = np.median(pixels, axis=0).astype(int)
+            return rgb_to_hex(tuple(median_color[::-1]))  # BGR to RGB
+        except:
+            return '#000000'
+    
 
 def main():
     """Main entry point for command-line usage"""

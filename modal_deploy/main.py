@@ -157,11 +157,14 @@ def convert_image_to_svg(
             generate_svg=False  # JSON-only mode, no SVG
         )
         
-        # Return extraction data with S3 URLs
+        # Get extraction data S3 URL
+        extraction_s3_url = result['extraction_data']['metadata'].get('json_s3_url')
+        
+        # Return response with S3 URL (not the full extraction_data to keep response small)
         response = {
             'success': True,
             'statistics': result['statistics'],
-            'extraction_data': result['extraction_data']
+            'extraction_data_s3_url': extraction_s3_url
         }
         
         # Generate Excalidraw JSON if requested
@@ -324,18 +327,25 @@ def main(
     print(f"  Dimensions:          {stats['dimensions'][0]}x{stats['dimensions'][1]}")
     
     # Print S3 info
-    if result['extraction_data']:
-        metadata = result['extraction_data']['metadata']
+    if result.get('extraction_data_s3_url'):
         print(f"\nS3 Storage:")
-        print(f"  Bucket: {metadata.get('s3_bucket')}")
-        print(f"  Prefix: {metadata.get('s3_prefix')}")
+        print(f"  Extraction Data: {result['extraction_data_s3_url']}")
+        
+        # Download and save extraction data locally
+        import requests
+        try:
+            print(f"\n✓ Downloading extraction data from S3...")
+            response_data = requests.get(result['extraction_data_s3_url'], timeout=30)
+            response_data.raise_for_status()
+            
+            output_json = 'extraction_data.json'
+            with open(output_json, 'w') as f:
+                f.write(response_data.text)
+            
+            print(f"✓ Extraction data saved to: {output_json}")
+        except Exception as e:
+            print(f"⚠ Warning: Could not download extraction data: {e}")
     
-    # Save extraction data to local JSON file
-    output_json = 'extraction_data.json'
-    with open(output_json, 'w') as f:
-        json.dump(result['extraction_data'], f, indent=2)
-    
-    print(f"\n✓ Extraction data saved to: {output_json}")
     print(f"✓ All elements uploaded to S3!")
     
     # Save Excalidraw JSON if generated

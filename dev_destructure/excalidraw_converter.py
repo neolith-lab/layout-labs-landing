@@ -424,6 +424,43 @@ class ExcalidrawConverter:
         
         print("Converting to Excalidraw format...")
         
+        # Layer 0: Background image with border (if available)
+        background_element = extraction_data.get('background_element')
+        if background_element and download_images:
+            print(f"  Processing background image...")
+            try:
+                # Create the background image element
+                bg_img_element = self._create_image_element(background_element, files)
+                if bg_img_element:
+                    elements.append(bg_img_element)
+                    
+                    # Add a border rectangle around the background
+                    bbox = self._get_value(background_element, 'bbox')
+                    if hasattr(bbox, 'x'):
+                        x, y, w, h = bbox.x, bbox.y, bbox.w, bbox.h
+                    else:
+                        x, y, w, h = 0, 0, statistics.get('dimensions', (800, 600))[0], statistics.get('dimensions', (800, 600))[1]
+                    
+                    border_element = {
+                        **self._create_base_element(),
+                        "id": str(uuid.uuid4()),
+                        "type": "rectangle",
+                        "x": float(x),
+                        "y": float(y),
+                        "width": float(w),
+                        "height": float(h),
+                        "strokeColor": "#000000",  # Black border
+                        "backgroundColor": "transparent",
+                        "fillStyle": "solid",
+                        "strokeWidth": 2,
+                        "index": self._get_index(),
+                        "roundness": None,  # Square corners for background border
+                    }
+                    elements.append(border_element)
+                    print(f"    ✓ Added background with border ({w}x{h})")
+            except Exception as e:
+                print(f"    Warning: Failed to add background: {e}")
+        
         # Layer 1: Containers (background rectangles)
         containers = extraction_data.get('containers', [])
         print(f"  Processing {len(containers)} containers...")

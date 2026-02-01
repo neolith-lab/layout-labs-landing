@@ -357,7 +357,16 @@ class RasterToSVGConverter:
         
         # Save background debug data (Stage 4: Background Extraction)
         background_debug_data = self._save_background_debug(background_image, width, height)
-
+        
+        # Store background image data for use in Excalidraw/other formats
+        # Create a background element that can be used in conversions
+        from image_detector import ImageElement
+        background_element = ImageElement(
+            bbox=BoundingBox(0, 0, width, height),
+            image_data=background_image.copy(),  # Required positional argument
+            is_photo=False,
+            dominant_colors=None
+        )
         
         # ============================================================
         # PHASE 4: SVG GENERATION WITH PROPER LAYERS
@@ -420,7 +429,8 @@ class RasterToSVGConverter:
                 'images_in_containers': images_in_containers,
                 'standalone_images': images_outside,
                 'shapes': [],  # No shape detection
-                'background': background_image
+                'background': background_image,
+                'background_element': background_element  # Add as ImageElement for Excalidraw
             }
         }
         

@@ -621,19 +621,16 @@ class RasterToSVGConverter:
     def _save_text_elements_debug(self, original_image: np.ndarray, 
                                    text_elements: List[TextElement]) -> Dict:
         """
-        Save text elements debug data: JSON metadata and cropped text images directly to S3.
+        Save text elements metadata (no image cropping - text is defined by metadata only).
         
         Args:
-            original_image: The original input image
+            original_image: The original input image (not used, kept for API compatibility)
             text_elements: List of detected TextElement objects
             
         Returns:
             Dictionary with text elements metadata for combined JSON
         """
-        if not self.use_s3:
-            return {}
-        
-        logger.info("Uploading text elements to S3...")
+        logger.info("Processing text elements metadata...")
         
         text_data = {
             'stage': 'text_detection',
@@ -642,16 +639,9 @@ class RasterToSVGConverter:
         }
         
         for i, elem in enumerate(text_elements):
-            # Crop the text region from original image
             bbox = elem.bbox
-            cropped = original_image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
             
-            # Upload cropped image directly to S3
-            crop_filename = f"text_{i:03d}.png"
-            s3_key = f"{self.s3_prefix}/text_elements/{crop_filename}"
-            s3_url = self._upload_image_to_s3(cropped, s3_key)
-            
-            # Build element metadata
+            # Build element metadata (no image cropping - text is defined by metadata)
             element_data = {
                 'id': int(i),
                 'text': str(elem.text),
@@ -677,20 +667,18 @@ class RasterToSVGConverter:
                 },
                 'color': str(elem.color),
                 'confidence': float(elem.confidence),
-                'num_lines': int(elem.num_lines),
-                'cropped_image': str(crop_filename),
-                's3_url': s3_url
+                'num_lines': int(elem.num_lines)
             }
             text_data['elements'].append(element_data)
         
-        logger.info(f"Uploaded {len(text_elements)} text elements to S3")
+        logger.info(f"Processed {len(text_elements)} text elements metadata")
         return text_data
     
     def _save_image_elements_debug(self, original_image: np.ndarray,
                                     image_elements: List[ImageElement],
                                     stage_name: str = 'images') -> Dict:
         """
-        Upload image elements directly to S3: JSON metadata and cropped images.
+        Upload image elements to S3 and encode as base64 for direct Excalidraw use.
         
         Args:
             original_image: The image to crop from (text-removed image for accurate crops)
@@ -698,12 +686,11 @@ class RasterToSVGConverter:
             stage_name: Name for the output subfolder
             
         Returns:
-            Dictionary with image elements metadata for combined JSON
+            Dictionary with image elements metadata including base64 data for combined JSON
         """
-        if not self.use_s3:
-            return {}
+        import base64
         
-        logger.info(f"Uploading image elements to S3 ({stage_name})...")
+        logger.info(f"Processing image elements ({stage_name})...")
         
         image_data = {
             'stage': 'image_detection',
@@ -717,12 +704,23 @@ class RasterToSVGConverter:
             # Crop the image region
             cropped = original_image[bbox.y:bbox.y2, bbox.x:bbox.x2].copy()
             
-            # Upload cropped image directly to S3
-            crop_filename = f"image_{i:03d}.png"
-            s3_key = f"{self.s3_prefix}/image_elements/{crop_filename}"
-            s3_url = self._upload_image_to_s3(cropped, s3_key)
+            # Encode to PNG bytes and base64
+            success, buffer = cv2.imencode('.png', cropped)
+            if not success:
+                logger.warning(f"Failed to encode image {i}, skipping")
+                continue
             
-            # Build element metadata
+            png_bytes = buffer.tobytes()
+            img_base64 = base64.b64encode(png_bytes).decode('utf-8')
+            
+            # Upload to S3 if enabled
+            s3_url = None
+            if self.use_s3:
+                crop_filename = f"image_{i:03d}.png"
+                s3_key = f"{self.s3_prefix}/image_elements/{crop_filename}"
+                s3_url = self._upload_bytes_to_s3(png_bytes, s3_key, 'image/png')
+            
+            # Build element metadata with base64 for direct Excalidraw use
             element_data = {
                 'id': int(i),
                 'bbox': {
@@ -737,12 +735,14 @@ class RasterToSVGConverter:
                 'dominant_colors': [[int(c) for c in color] for color in elem.dominant_colors] if elem.dominant_colors else [],
                 'area': int(bbox.w * bbox.h),
                 'aspect_ratio': float(round(bbox.w / bbox.h, 3)) if bbox.h > 0 else 0.0,
-                'cropped_image': str(crop_filename),
+                'base64_data': img_base64,  # Base64 for direct Excalidraw embedding
+                'mime_type': 'image/png',
                 's3_url': s3_url
             }
             image_data['elements'].append(element_data)
         
-        logger.info(f"Uploaded {len(image_elements)} image elements to S3")
+        logger.info(f"Processed {len(image_data['elements'])} image elements" + 
+                   (f" (uploaded to S3)" if self.use_s3 else ""))
         return image_data
     
     def _save_container_elements_debug(self, cleaned_image: np.ndarray,
@@ -810,7 +810,7 @@ class RasterToSVGConverter:
     def _save_background_debug(self, background_image: np.ndarray,
                                 original_width: int, original_height: int) -> Dict:
         """
-        Upload background directly to S3: the extracted background image and JSON metadata.
+        Process background: encode as base64 and optionally upload to S3.
         
         Args:
             background_image: The extracted background image (all elements removed)
@@ -818,17 +818,28 @@ class RasterToSVGConverter:
             original_height: Original image height
             
         Returns:
-            Dictionary with background metadata for combined JSON
+            Dictionary with background metadata including base64 for combined JSON
         """
-        if not self.use_s3:
+        import base64
+        
+        logger.info("Processing background...")
+        
+        # Encode to PNG bytes and base64
+        success, buffer = cv2.imencode('.png', background_image)
+        if not success:
+            logger.warning("Failed to encode background image")
             return {}
         
-        logger.info("Uploading background to S3...")
+        png_bytes = buffer.tobytes()
+        img_base64 = base64.b64encode(png_bytes).decode('utf-8')
         
-        # Upload background image directly to S3
-        bg_filename = 'background.png'
-        s3_key = f"{self.s3_prefix}/background/{bg_filename}"
-        s3_url = self._upload_image_to_s3(background_image, s3_key)
+        # Upload to S3 if enabled
+        s3_url = None
+        if self.use_s3:
+            bg_filename = 'background.png'
+            s3_key = f"{self.s3_prefix}/background/{bg_filename}"
+            s3_url = self._upload_bytes_to_s3(png_bytes, s3_key, 'image/png')
+            logger.info("Uploaded background to S3")
         
         # Calculate dominant colors in background
         # Sample from center region to avoid edge artifacts
@@ -847,11 +858,12 @@ class RasterToSVGConverter:
                 'rgb': [int(avg_color[2]), int(avg_color[1]), int(avg_color[0])],  # BGR to RGB
                 'hex': str(avg_color_hex)
             },
-            'background_image': str(bg_filename),
+            'base64_data': img_base64,  # Base64 for direct Excalidraw embedding
+            'mime_type': 'image/png',
             's3_url': s3_url
         }
         
-        logger.info("Uploaded background to S3")
+        logger.info("Processed background" + (f" (uploaded to S3)" if self.use_s3 else ""))
         return background_data
     
     def _save_combined_debug_json(self, input_path: str, output_path: str,

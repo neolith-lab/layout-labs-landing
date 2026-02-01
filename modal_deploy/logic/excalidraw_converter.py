@@ -192,15 +192,18 @@ class ExcalidrawConverter:
         image: Dict[str, Any], 
         files: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        """Convert an image to Excalidraw image element"""
+        """Convert an image to Excalidraw image element using pre-encoded base64 data"""
         bbox = self._get_value(image, 'bbox', [0, 0, 100, 100])
-        s3_url = self._get_value(image, 's3_url', self._get_value(image, 'url'))
-        image_data = self._get_value(image, 'image_data')
         
-        # Check if we have either S3 URL or local image data
-        if not s3_url and image_data is None:
-            print("Warning: Image missing both s3_url and image_data, skipping")
-            return None
+        # Prefer base64_data (already encoded during extraction)
+        base64_data = self._get_value(image, 'base64_data')
+        mime_type = self._get_value(image, 'mime_type', 'image/png')
+        
+        # Fallback to s3_url if no base64 (for backwards compatibility)
+        s3_url = self._get_value(image, 's3_url', self._get_value(image, 'url'))
+        
+        # Fallback to image_data numpy array
+        image_data = self._get_value(image, 'image_data')
         
         # Handle BoundingBox object
         if hasattr(bbox, 'x'):
@@ -220,28 +223,34 @@ class ExcalidrawConverter:
         else:
             x, y, w, h = 0, 0, 100, 100
         
-        # Get image data - either download from S3 or encode local image
-        if s3_url:
-            # Download and encode image from S3 URL
+        # Get base64 data from the best available source
+        img_base64 = None
+        
+        if base64_data:
+            # Use pre-encoded base64 directly (preferred - no network call needed)
+            img_base64 = base64_data
+        elif s3_url:
+            # Fallback: Download and encode image from S3 URL
+            print(f"    Downloading from S3 (no base64_data available)...")
             img_base64, mime_type = self._download_and_encode_image(s3_url)
-            
             if not img_base64:
                 print(f"Warning: Failed to encode image from {s3_url}, skipping")
                 return None
-        else:
-            # Encode local image_data (numpy array)
+        elif image_data is not None:
+            # Fallback: Encode local image_data (numpy array)
             try:
-                # image_data is a numpy array, encode it to PNG
                 success, buffer = cv2.imencode('.png', image_data)
                 if not success:
                     print("Warning: Failed to encode local image data, skipping")
                     return None
-                
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 mime_type = 'image/png'
             except Exception as e:
                 print(f"Warning: Failed to encode local image data: {e}")
                 return None
+        else:
+            print("Warning: Image missing base64_data, s3_url, and image_data, skipping")
+            return None
         
         # Create file entry
         file_id = str(uuid.uuid4())
@@ -298,8 +307,20 @@ class ExcalidrawConverter:
             x, y, w, h = 0, 0, 100, 25
         
         text = self._get_value(text_data, 'text', '')
-        original_font_size = self._get_value(text_data, 'font_size', 16)
         color = self._get_value(text_data, 'color', '#1e1e1e')
+        
+        # Handle both flat and nested font properties
+        # JSON format has font as nested object: {"font": {"size": 16, "family": "helvetica"}}
+        # Python object format has flat: {"font_size": 16, "font_family": "helvetica"}
+        font_data = self._get_value(text_data, 'font', {})
+        if font_data and isinstance(font_data, dict):
+            # Nested format (from JSON)
+            original_font_size = font_data.get('size', 16)
+            font_family_name = font_data.get('family', 'virgil')
+        else:
+            # Flat format (from Python objects)
+            original_font_size = self._get_value(text_data, 'font_size', 16)
+            font_family_name = self._get_value(text_data, 'font_family', 'virgil')
         
         # Map font family (if provided)
         font_family_map = {
@@ -307,7 +328,6 @@ class ExcalidrawConverter:
             'helvetica': 2,
             'cascadia': 3,
         }
-        font_family_name = self._get_value(text_data, 'font_family', 'virgil')
         if isinstance(font_family_name, str):
             font_family_name = font_family_name.lower()
         font_family = font_family_map.get(font_family_name, 1)
@@ -431,10 +451,22 @@ class ExcalidrawConverter:
         if 'stages' in extraction_data:
             # Nested format from S3 JSON
             print("  Detected nested JSON format, restructuring...")
-            text_elements = extraction_data['stages']['text_detection']['elements']
-            containers = extraction_data['stages']['container_detection']['elements']
-            images = extraction_data['stages']['image_detection']['elements']
-            background_data = extraction_data['stages']['background_extraction']
+            stages = extraction_data.get('stages', {})
+            
+            # Safely get elements from each stage
+            text_stage = stages.get('text_detection', {})
+            container_stage = stages.get('container_detection', {})
+            image_stage = stages.get('image_detection', {})
+            background_data = stages.get('background_extraction', {})
+            
+            text_elements = text_stage.get('elements', []) if text_stage else []
+            containers = container_stage.get('elements', []) if container_stage else []
+            images = image_stage.get('elements', []) if image_stage else []
+            
+            print(f"    Text elements from JSON: {len(text_elements)}")
+            print(f"    Containers from JSON: {len(containers)}")
+            print(f"    Images from JSON: {len(images)}")
+            
             logos = []
             shapes = []
             
@@ -511,15 +543,14 @@ class ExcalidrawConverter:
         if download_images:
             all_images = images_in_containers + standalone_images + logos
             
-            print(f"  Processing {len(all_images)} images (downloading and encoding)...")
+            print(f"  Processing {len(all_images)} images (using embedded base64)...")
             for idx, image in enumerate(all_images, 1):
                 try:
-                    print(f"    [{idx}/{len(all_images)}] Downloading image...")
                     element = self._create_image_element(image, files)
                     if element:
                         elements.append(element)
                 except Exception as e:
-                    print(f"    Warning: Failed to convert image: {e}")
+                    print(f"    Warning: Failed to convert image {idx}: {e}")
         else:
             print("  Skipping image download (download_images=False)")
         

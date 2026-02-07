@@ -13,6 +13,14 @@ OCR_CONFIG = {
     'font_size_cluster_tolerance': 0.35,  # 35% tolerance for clustering similar sizes
     'min_font_size': 6,   # Minimum font size in points
     'max_font_size': 200, # Maximum font size in points
+    # Font style harmonization settings
+    # Groups text by (font_size, y_band) and applies majority-vote within
+    # each group so same-level text shares the same font family.
+    # Only font_size + vertical position are used as grouping signals —
+    # color and weight are too noisy from small crops.
+    'harmonize_font_styles': True,   # Enable style group harmonization
+    'style_y_band_pct': 0.10,       # Y-band size as fraction of image height (10%)
+    'fallback_font': 'Open Sans',   # Safe fallback when no valid font or all caps-only
 }
 
 # Image Processing Settings

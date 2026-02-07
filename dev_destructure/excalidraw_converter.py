@@ -62,7 +62,6 @@ EXCALIDRAW_FONT_FAMILY = {
     # Display & Stylized
     "Abril Fatface": 46,
     "Lobster": 47,
-    "Bebas Neue": 48,
     "Anton": 49,
     "Righteous": 50,
     "Orbitron": 51,

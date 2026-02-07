@@ -7,8 +7,139 @@ import time
 import base64
 import requests
 import cv2
+import json
+import os
 from typing import Dict, List, Any, Optional
 import random
+
+
+# Excalidraw FONT_FAMILY numeric IDs (mirrors constants.ts in excalidraw)
+EXCALIDRAW_FONT_FAMILY = {
+    "Excalifont": 5,
+    "Nunito": 6,
+    "Lilita One": 7,
+    "Comic Shanns": 8,
+    "Liberation Sans": 9,
+    "Assistant": 10,
+    "Avenir": 11,
+    # Professional Sans Serif
+    "Roboto": 12,
+    "Open Sans": 13,
+    "Lato": 14,
+    "Montserrat": 15,
+    "Inter": 16,
+    "Poppins": 17,
+    "Raleway": 18,
+    "Work Sans": 19,
+    "Source Sans 3": 20,
+    "Ubuntu": 21,
+    "Mulish": 22,
+    "Heebo": 23,
+    "DM Sans": 24,
+    "Karla": 25,
+    # Elegant Serif
+    "Playfair Display": 26,
+    "Merriweather": 27,
+    "Lora": 28,
+    "Crimson Text": 29,
+    "Libre Baskerville": 30,
+    "EB Garamond": 31,
+    "Cormorant Garamond": 32,
+    "Spectral": 33,
+    "PT Serif": 34,
+    "Cardo": 35,
+    "Domine": 36,
+    "Vollkorn": 37,
+    "Prata": 38,
+    "Cinzel": 39,
+    "Fraunces": 40,
+    # Slab Serif
+    "Roboto Slab": 41,
+    "Oswald": 42,
+    "Arvo": 43,
+    "Zilla Slab": 44,
+    "Bitter": 45,
+    # Display & Stylized
+    "Abril Fatface": 46,
+    "Lobster": 47,
+    "Bebas Neue": 48,
+    "Anton": 49,
+    "Righteous": 50,
+    "Orbitron": 51,
+    # Handwriting & Script
+    "Pacifico": 52,
+    "Indie Flower": 53,
+    "Caveat": 54,
+    "Shadows Into Light": 55,
+    "Great Vibes": 56,
+    # Monospace
+    "Roboto Mono": 57,
+    "Inconsolata": 58,
+    "Source Code Pro": 59,
+    "Space Mono": 60,
+}
+
+# Default font ID when no mapping is found
+DEFAULT_FONT_ID = EXCALIDRAW_FONT_FAMILY["Excalifont"]  # 5
+
+
+def _load_font_to_anchor_mapping() -> Dict[str, str]:
+    """
+    Load the font_to_anchor_mapping.json which maps any Google Font name
+    to one of the 50 anchor fonts used in Excalidraw.
+    """
+    # Try multiple possible locations for the mapping file
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), "font_to_anchor_mapping.json"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "font_coalesce", "google_fonts", "font_to_anchor_mapping.json"),
+        "/root/dev_destructure/font_to_anchor_mapping.json",
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                return json.load(f)
+    
+    print("Warning: font_to_anchor_mapping.json not found, font mapping will fall back to defaults")
+    return {}
+
+
+# Load mapping once at module level
+FONT_TO_ANCHOR_MAPPING = _load_font_to_anchor_mapping()
+
+
+def map_classified_font_to_excalidraw_id(classified_font: str) -> int:
+    """
+    Map a classified font name to its Excalidraw numeric font family ID.
+    
+    Flow: classified_font → (anchor mapping) → anchor font → (FONT_FAMILY) → numeric ID
+    
+    Args:
+        classified_font: The font name from the font classification model
+        
+    Returns:
+        Excalidraw numeric font family ID
+    """
+    if not classified_font:
+        return DEFAULT_FONT_ID
+    
+    # 1. Check if the classified font is already one of our anchor fonts
+    if classified_font in EXCALIDRAW_FONT_FAMILY:
+        return EXCALIDRAW_FONT_FAMILY[classified_font]
+    
+    # 2. Look up in the font_to_anchor_mapping
+    anchor_font = FONT_TO_ANCHOR_MAPPING.get(classified_font)
+    if anchor_font and anchor_font in EXCALIDRAW_FONT_FAMILY:
+        return EXCALIDRAW_FONT_FAMILY[anchor_font]
+    
+    # 3. Try case-insensitive match against anchor fonts
+    classified_lower = classified_font.lower()
+    for font_name, font_id in EXCALIDRAW_FONT_FAMILY.items():
+        if font_name.lower() == classified_lower:
+            return font_id
+    
+    # 4. Fallback to default
+    return DEFAULT_FONT_ID
 
 
 class ExcalidrawConverter:
@@ -192,15 +323,18 @@ class ExcalidrawConverter:
         image: Dict[str, Any], 
         files: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        """Convert an image to Excalidraw image element"""
+        """Convert an image to Excalidraw image element using pre-encoded base64 data"""
         bbox = self._get_value(image, 'bbox', [0, 0, 100, 100])
-        s3_url = self._get_value(image, 's3_url', self._get_value(image, 'url'))
-        image_data = self._get_value(image, 'image_data')
         
-        # Check if we have either S3 URL or local image data
-        if not s3_url and image_data is None:
-            print("Warning: Image missing both s3_url and image_data, skipping")
-            return None
+        # Prefer base64_data (already encoded during extraction)
+        base64_data = self._get_value(image, 'base64_data')
+        mime_type = self._get_value(image, 'mime_type', 'image/png')
+        
+        # Fallback to s3_url if no base64 (for backwards compatibility)
+        s3_url = self._get_value(image, 's3_url', self._get_value(image, 'url'))
+        
+        # Fallback to image_data numpy array
+        image_data = self._get_value(image, 'image_data')
         
         # Handle BoundingBox object
         if hasattr(bbox, 'x'):
@@ -220,28 +354,34 @@ class ExcalidrawConverter:
         else:
             x, y, w, h = 0, 0, 100, 100
         
-        # Get image data - either download from S3 or encode local image
-        if s3_url:
-            # Download and encode image from S3 URL
+        # Get base64 data from the best available source
+        img_base64 = None
+        
+        if base64_data:
+            # Use pre-encoded base64 directly (preferred - no network call needed)
+            img_base64 = base64_data
+        elif s3_url:
+            # Fallback: Download and encode image from S3 URL
+            print(f"    Downloading from S3 (no base64_data available)...")
             img_base64, mime_type = self._download_and_encode_image(s3_url)
-            
             if not img_base64:
                 print(f"Warning: Failed to encode image from {s3_url}, skipping")
                 return None
-        else:
-            # Encode local image_data (numpy array)
+        elif image_data is not None:
+            # Fallback: Encode local image_data (numpy array)
             try:
-                # image_data is a numpy array, encode it to PNG
                 success, buffer = cv2.imencode('.png', image_data)
                 if not success:
                     print("Warning: Failed to encode local image data, skipping")
                     return None
-                
                 img_base64 = base64.b64encode(buffer).decode('utf-8')
                 mime_type = 'image/png'
             except Exception as e:
                 print(f"Warning: Failed to encode local image data: {e}")
                 return None
+        else:
+            print("Warning: Image missing base64_data, s3_url, and image_data, skipping")
+            return None
         
         # Create file entry
         file_id = str(uuid.uuid4())
@@ -298,19 +438,23 @@ class ExcalidrawConverter:
             x, y, w, h = 0, 0, 100, 25
         
         text = self._get_value(text_data, 'text', '')
-        original_font_size = self._get_value(text_data, 'font_size', 16)
         color = self._get_value(text_data, 'color', '#1e1e1e')
         
-        # Map font family (if provided)
-        font_family_map = {
-            'virgil': 1,
-            'helvetica': 2,
-            'cascadia': 3,
-        }
-        font_family_name = self._get_value(text_data, 'font_family', 'virgil')
-        if isinstance(font_family_name, str):
-            font_family_name = font_family_name.lower()
-        font_family = font_family_map.get(font_family_name, 1)
+        # Handle both flat and nested font properties
+        # JSON format has font as nested object: {"font": {"size": 16, "family": "helvetica", "classified_font": "Roboto"}}
+        # Python object format has flat: {"font_size": 16, "font_family": "helvetica", "classified_font": "Roboto"}
+        font_data = self._get_value(text_data, 'font', {})
+        if font_data and isinstance(font_data, dict):
+            # Nested format (from JSON)
+            original_font_size = font_data.get('size', 16)
+            classified_font = font_data.get('classified_font', '')
+        else:
+            # Flat format (from Python objects)
+            original_font_size = self._get_value(text_data, 'font_size', 16)
+            classified_font = self._get_value(text_data, 'classified_font', '')
+        
+        # Map classified font → anchor font → Excalidraw numeric font family ID
+        font_family = map_classified_font_to_excalidraw_id(classified_font)
         
         # Determine text alignment
         text_align = self._get_value(text_data, 'text_align', 'left')
@@ -411,7 +555,10 @@ class ExcalidrawConverter:
         Convert extraction data to Excalidraw JSON format
         
         Args:
-            extraction_data: The extraction data from RasterToSVGConverter
+            extraction_data: The extraction data from RasterToSVGConverter.
+                           Can be either:
+                           - Direct format: {'text_elements': [...], 'containers': [...], ...}
+                           - Nested format: {'stages': {'text_detection': {...}, ...}, ...}
             statistics: Statistics from the extraction
             download_images: Whether to download images from S3 URLs (default: True)
         
@@ -424,8 +571,44 @@ class ExcalidrawConverter:
         
         print("Converting to Excalidraw format...")
         
+        # Handle both nested (JSON from S3) and direct (Python object) formats
+        if 'stages' in extraction_data:
+            # Nested format from S3 JSON
+            print("  Detected nested JSON format, restructuring...")
+            stages = extraction_data.get('stages', {})
+            
+            # Safely get elements from each stage
+            text_stage = stages.get('text_detection', {})
+            container_stage = stages.get('container_detection', {})
+            image_stage = stages.get('image_detection', {})
+            background_data = stages.get('background_extraction', {})
+            
+            text_elements = text_stage.get('elements', []) if text_stage else []
+            containers = container_stage.get('elements', []) if container_stage else []
+            images = image_stage.get('elements', []) if image_stage else []
+            
+            print(f"    Text elements from JSON: {len(text_elements)}")
+            print(f"    Containers from JSON: {len(containers)}")
+            print(f"    Images from JSON: {len(images)}")
+            
+            logos = []
+            shapes = []
+            
+            # For images, we don't have the split in JSON, so use all images
+            images_in_containers = images  # Will be rendered
+            standalone_images = []
+        else:
+            # Direct format from Python objects
+            text_elements = extraction_data.get('text_elements', extraction_data.get('text', []))
+            containers = extraction_data.get('containers', [])
+            images_in_containers = extraction_data.get('images_in_containers', [])
+            standalone_images = extraction_data.get('standalone_images', [])
+            logos = extraction_data.get('logos', [])
+            shapes = extraction_data.get('shapes', [])
+            background_data = extraction_data.get('background_element')
+        
         # Layer 0: Background image with border (if available)
-        background_element = extraction_data.get('background_element')
+        background_element = background_data
         if background_element and download_images:
             print(f"  Processing background image...")
             try:
@@ -462,7 +645,6 @@ class ExcalidrawConverter:
                 print(f"    Warning: Failed to add background: {e}")
         
         # Layer 1: Containers (background rectangles)
-        containers = extraction_data.get('containers', [])
         print(f"  Processing {len(containers)} containers...")
         for container in containers:
             try:
@@ -472,7 +654,6 @@ class ExcalidrawConverter:
                 print(f"    Warning: Failed to convert container: {e}")
         
         # Layer 2: Shapes
-        shapes = extraction_data.get('shapes', [])
         print(f"  Processing {len(shapes)} shapes...")
         for shape in shapes:
             try:
@@ -484,30 +665,20 @@ class ExcalidrawConverter:
         
         # Layer 3: Images (if download_images is True)
         if download_images:
-            # Support both formats: 'images' or 'images_in_containers'+'standalone_images'
-            images = extraction_data.get('images', [])
-            if not images:
-                # Use the split format from raster_to_svg
-                images = extraction_data.get('images_in_containers', []) + extraction_data.get('standalone_images', [])
+            all_images = images_in_containers + standalone_images + logos
             
-            logos = extraction_data.get('logos', [])
-            all_images = images + logos
-            
-            print(f"  Processing {len(all_images)} images (downloading and encoding)...")
+            print(f"  Processing {len(all_images)} images (using embedded base64)...")
             for idx, image in enumerate(all_images, 1):
                 try:
-                    print(f"    [{idx}/{len(all_images)}] Downloading image...")
                     element = self._create_image_element(image, files)
                     if element:
                         elements.append(element)
                 except Exception as e:
-                    print(f"    Warning: Failed to convert image: {e}")
+                    print(f"    Warning: Failed to convert image {idx}: {e}")
         else:
             print("  Skipping image download (download_images=False)")
         
         # Layer 4: Text elements (foreground)
-        # Support both 'text_elements' and 'text' keys
-        text_elements = extraction_data.get('text_elements', extraction_data.get('text', []))
         print(f"  Processing {len(text_elements)} text elements...")
         for text_data in text_elements:
             try:

@@ -20,7 +20,7 @@ except ImportError:
 try:
     from font_classifier import get_font_classifier, FontPrediction
     FONT_CLASSIFIER_AVAILABLE = True
-except ImportError:
+except Exception as _e:
     FONT_CLASSIFIER_AVAILABLE = False
 
 from utils import BoundingBox, save_debug_image
@@ -29,7 +29,7 @@ from config import OCR_CONFIG, DEBUG
 logger = logging.getLogger(__name__)
 
 if not FONT_CLASSIFIER_AVAILABLE:
-    logger.warning("Font classifier not available")
+    logger.warning(f"Font classifier not available: {_e}")
 
 
 @dataclass

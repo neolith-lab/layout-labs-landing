@@ -7,8 +7,139 @@ import time
 import base64
 import requests
 import cv2
+import json
+import os
 from typing import Dict, List, Any, Optional
 import random
+
+
+# Excalidraw FONT_FAMILY numeric IDs (mirrors constants.ts in excalidraw)
+EXCALIDRAW_FONT_FAMILY = {
+    "Excalifont": 5,
+    "Nunito": 6,
+    "Lilita One": 7,
+    "Comic Shanns": 8,
+    "Liberation Sans": 9,
+    "Assistant": 10,
+    "Avenir": 11,
+    # Professional Sans Serif
+    "Roboto": 12,
+    "Open Sans": 13,
+    "Lato": 14,
+    "Montserrat": 15,
+    "Inter": 16,
+    "Poppins": 17,
+    "Raleway": 18,
+    "Work Sans": 19,
+    "Source Sans 3": 20,
+    "Ubuntu": 21,
+    "Mulish": 22,
+    "Heebo": 23,
+    "DM Sans": 24,
+    "Karla": 25,
+    # Elegant Serif
+    "Playfair Display": 26,
+    "Merriweather": 27,
+    "Lora": 28,
+    "Crimson Text": 29,
+    "Libre Baskerville": 30,
+    "EB Garamond": 31,
+    "Cormorant Garamond": 32,
+    "Spectral": 33,
+    "PT Serif": 34,
+    "Cardo": 35,
+    "Domine": 36,
+    "Vollkorn": 37,
+    "Prata": 38,
+    "Cinzel": 39,
+    "Fraunces": 40,
+    # Slab Serif
+    "Roboto Slab": 41,
+    "Oswald": 42,
+    "Arvo": 43,
+    "Zilla Slab": 44,
+    "Bitter": 45,
+    # Display & Stylized
+    "Abril Fatface": 46,
+    "Lobster": 47,
+    "Bebas Neue": 48,
+    "Anton": 49,
+    "Righteous": 50,
+    "Orbitron": 51,
+    # Handwriting & Script
+    "Pacifico": 52,
+    "Indie Flower": 53,
+    "Caveat": 54,
+    "Shadows Into Light": 55,
+    "Great Vibes": 56,
+    # Monospace
+    "Roboto Mono": 57,
+    "Inconsolata": 58,
+    "Source Code Pro": 59,
+    "Space Mono": 60,
+}
+
+# Default font ID when no mapping is found
+DEFAULT_FONT_ID = EXCALIDRAW_FONT_FAMILY["Excalifont"]  # 5
+
+
+def _load_font_to_anchor_mapping() -> Dict[str, str]:
+    """
+    Load the font_to_anchor_mapping.json which maps any Google Font name
+    to one of the 50 anchor fonts used in Excalidraw.
+    """
+    # Try multiple possible locations for the mapping file
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), "font_to_anchor_mapping.json"),
+        os.path.join(os.path.dirname(__file__), "..", "..", "font_coalesce", "google_fonts", "font_to_anchor_mapping.json"),
+        "/root/dev_destructure/font_to_anchor_mapping.json",
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                return json.load(f)
+    
+    print("Warning: font_to_anchor_mapping.json not found, font mapping will fall back to defaults")
+    return {}
+
+
+# Load mapping once at module level
+FONT_TO_ANCHOR_MAPPING = _load_font_to_anchor_mapping()
+
+
+def map_classified_font_to_excalidraw_id(classified_font: str) -> int:
+    """
+    Map a classified font name to its Excalidraw numeric font family ID.
+    
+    Flow: classified_font → (anchor mapping) → anchor font → (FONT_FAMILY) → numeric ID
+    
+    Args:
+        classified_font: The font name from the font classification model
+        
+    Returns:
+        Excalidraw numeric font family ID
+    """
+    if not classified_font:
+        return DEFAULT_FONT_ID
+    
+    # 1. Check if the classified font is already one of our anchor fonts
+    if classified_font in EXCALIDRAW_FONT_FAMILY:
+        return EXCALIDRAW_FONT_FAMILY[classified_font]
+    
+    # 2. Look up in the font_to_anchor_mapping
+    anchor_font = FONT_TO_ANCHOR_MAPPING.get(classified_font)
+    if anchor_font and anchor_font in EXCALIDRAW_FONT_FAMILY:
+        return EXCALIDRAW_FONT_FAMILY[anchor_font]
+    
+    # 3. Try case-insensitive match against anchor fonts
+    classified_lower = classified_font.lower()
+    for font_name, font_id in EXCALIDRAW_FONT_FAMILY.items():
+        if font_name.lower() == classified_lower:
+            return font_id
+    
+    # 4. Fallback to default
+    return DEFAULT_FONT_ID
 
 
 class ExcalidrawConverter:
@@ -310,27 +441,20 @@ class ExcalidrawConverter:
         color = self._get_value(text_data, 'color', '#1e1e1e')
         
         # Handle both flat and nested font properties
-        # JSON format has font as nested object: {"font": {"size": 16, "family": "helvetica"}}
-        # Python object format has flat: {"font_size": 16, "font_family": "helvetica"}
+        # JSON format has font as nested object: {"font": {"size": 16, "family": "helvetica", "classified_font": "Roboto"}}
+        # Python object format has flat: {"font_size": 16, "font_family": "helvetica", "classified_font": "Roboto"}
         font_data = self._get_value(text_data, 'font', {})
         if font_data and isinstance(font_data, dict):
             # Nested format (from JSON)
             original_font_size = font_data.get('size', 16)
-            font_family_name = font_data.get('family', 'virgil')
+            classified_font = font_data.get('classified_font', '')
         else:
             # Flat format (from Python objects)
             original_font_size = self._get_value(text_data, 'font_size', 16)
-            font_family_name = self._get_value(text_data, 'font_family', 'virgil')
+            classified_font = self._get_value(text_data, 'classified_font', '')
         
-        # Map font family (if provided)
-        font_family_map = {
-            'virgil': 1,
-            'helvetica': 2,
-            'cascadia': 3,
-        }
-        if isinstance(font_family_name, str):
-            font_family_name = font_family_name.lower()
-        font_family = font_family_map.get(font_family_name, 1)
+        # Map classified font → anchor font → Excalidraw numeric font family ID
+        font_family = map_classified_font_to_excalidraw_id(classified_font)
         
         # Determine text alignment
         text_align = self._get_value(text_data, 'text_align', 'left')

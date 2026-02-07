@@ -21,7 +21,7 @@ CONFIG_PATH = huggingface_hub.hf_hub_download(
 MODEL_PATH = huggingface_hub.hf_hub_download(
     repo_id="storia/font-classify-onnx", filename="model.onnx"
 )
-MAPPING_PATH = "google_fonts_mapping.tsv"
+MAPPING_PATH = os.path.join(os.path.dirname(__file__), "google_fonts_mapping.tsv")
 
 
 @dataclass

@@ -40,6 +40,13 @@ image = (
         "easyocr>=1.7.0",
         "requests>=2.31.0",
         "boto3>=1.28.0",  # Added for S3 support
+        # Font classifier dependencies
+        "onnxruntime-gpu>=1.16.0",  # ONNX inference (GPU-accelerated)
+        "albumentations>=1.3.0",  # Image transforms for font classifier
+        "huggingface_hub>=0.19.0",  # Download font classification model
+        "pyyaml>=6.0",  # Model config parsing
+        "torch>=2.0.0",  # Required by train.py (imported by font_classifier)
+        "timm>=0.9.0",  # Required by train.py (imported by font_classifier)
     ).add_local_dir("./logic", remote_path="/root/dev_destructure")
 )
 

@@ -414,22 +414,39 @@ class ContainerDetector:
         return 2  # Default
     
     def _filter_nested_containers(self, containers: List[ContainerElement]) -> List[ContainerElement]:
-        """Filter out containers that are completely inside other containers"""
+        """
+        Keep all containers including nested ones (e.g. header bars inside panels).
+        
+        Previously this removed nested containers, but that destroyed the visual
+        hierarchy of infographics where smaller colored bars sit inside larger panels.
+        Now we keep everything and rely on proper z-ordering in the output.
+        """
         if len(containers) <= 1:
             return containers
         
-        # Sort by area (largest first)
+        # Sort by area (largest first) to maintain proper z-order
         containers = sorted(containers, key=lambda c: c.bbox.area, reverse=True)
         
+        # Remove only exact duplicates (>95% IoU), not nested containers
         filtered = []
         for container in containers:
-            is_nested = False
+            is_duplicate = False
             for existing in filtered:
-                if self._is_contained(container.bbox, existing.bbox, threshold=0.9):
-                    is_nested = True
-                    break
+                # Only filter near-identical overlaps, not containment
+                x1 = max(container.bbox.x, existing.bbox.x)
+                y1 = max(container.bbox.y, existing.bbox.y)
+                x2 = min(container.bbox.x2, existing.bbox.x2)
+                y2 = min(container.bbox.y2, existing.bbox.y2)
+                
+                if x2 > x1 and y2 > y1:
+                    intersection = (x2 - x1) * (y2 - y1)
+                    union = container.bbox.area + existing.bbox.area - intersection
+                    iou = intersection / union if union > 0 else 0
+                    if iou > 0.85:  # Near-duplicate
+                        is_duplicate = True
+                        break
             
-            if not is_nested:
+            if not is_duplicate:
                 filtered.append(container)
         
         return filtered

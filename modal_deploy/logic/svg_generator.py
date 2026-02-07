@@ -265,7 +265,6 @@ class SVGGenerator:
             'Ubuntu': "Arial, Helvetica, sans-serif",
             'Oswald': "'Arial Narrow', Arial, sans-serif",
             'Source Sans Pro': "Arial, Helvetica, sans-serif",
-            'Bebas Neue': "'Arial Narrow', Impact, sans-serif",
             
             # Serif fonts
             'Playfair Display': "Georgia, 'Times New Roman', serif",

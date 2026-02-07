@@ -281,7 +281,7 @@ class RasterToSVGConverter:
                 fill_color=fill_color,
                 stroke_color=stroke_color,
                 stroke_width=1,
-                corner_radius=0  # Will be estimated later if needed
+                corner_radius=self._estimate_corner_radius_from_image(original_image, bbox)
             )
             containers.append(container)
         
@@ -858,6 +858,12 @@ class RasterToSVGConverter:
                 'width': int(original_width),
                 'height': int(original_height)
             },
+            'bbox': {
+                'x': 0,
+                'y': 0,
+                'width': int(original_width),
+                'height': int(original_height)
+            },
             'average_color': {
                 'rgb': [int(avg_color[2]), int(avg_color[1]), int(avg_color[0])],  # BGR to RGB
                 'hex': str(avg_color_hex)
@@ -948,22 +954,139 @@ class RasterToSVGConverter:
         except:
             return '#FFFFFF'
     
-    def _extract_container_stroke_color(self, image: np.ndarray, contour: np.ndarray) -> str:
-        """Extract the stroke/border color from a container"""
+    def _estimate_corner_radius_from_image(self, image: np.ndarray, bbox: BoundingBox) -> int:
+        """
+        Estimate corner radius of a container by analyzing the corner regions
+        of the actual image. Looks for curved transitions in the corners.
+        
+        Strategy: In each corner, find the edge pixels and measure how far 
+        the edge curves away from the sharp corner point.
+        """
         try:
-            # Sample pixels along the contour
-            mask = np.zeros(image.shape[:2], dtype=np.uint8)
-            cv2.drawContours(mask, [contour], -1, 255, 3)
+            h_img, w_img = image.shape[:2]
+            x1 = max(0, bbox.x)
+            y1 = max(0, bbox.y)
+            x2 = min(w_img, bbox.x2)
+            y2 = min(h_img, bbox.y2)
             
-            pixels = image[mask > 0]
+            if x2 - x1 < 20 or y2 - y1 < 20:
+                return 0
             
-            if len(pixels) == 0:
+            region = image[y1:y2, x1:x2]
+            gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
+            edges = cv2.Canny(gray, 50, 150)
+            
+            rh, rw = edges.shape
+            # Sample corner region size: 15% of smaller dimension, capped at 30px
+            corner_size = min(30, max(5, min(rh, rw) // 7))
+            
+            radii = []
+            # Check each corner
+            corners = [
+                edges[:corner_size, :corner_size],            # top-left
+                edges[:corner_size, -corner_size:],           # top-right
+                edges[-corner_size:, :corner_size],           # bottom-left
+                edges[-corner_size:, -corner_size:],          # bottom-right
+            ]
+            corner_points = [
+                (0, 0),                                        # top-left origin
+                (0, corner_size - 1),                          # top-right origin
+                (corner_size - 1, 0),                          # bottom-left origin
+                (corner_size - 1, corner_size - 1),            # bottom-right origin
+            ]
+            
+            for corner_edges, (cy, cx) in zip(corners, corner_points):
+                edge_coords = np.argwhere(corner_edges > 0)
+                if len(edge_coords) < 3:
+                    radii.append(0)
+                    continue
+                
+                # Measure average distance of edge pixels from the sharp corner
+                distances = np.sqrt((edge_coords[:, 0] - cy) ** 2 + (edge_coords[:, 1] - cx) ** 2)
+                avg_dist = np.mean(distances)
+                
+                # If edge pixels are clustered near the corner, radius is small
+                # If they arc away, radius is larger
+                if avg_dist > 3:
+                    radii.append(int(avg_dist * 0.7))
+                else:
+                    radii.append(0)
+            
+            # Use median of the 4 corners
+            median_radius = int(np.median(radii))
+            return max(0, min(median_radius, min(bbox.w, bbox.h) // 4))
+            
+        except Exception:
+            return 0
+    
+    def _extract_container_stroke_color(self, image: np.ndarray, contour: np.ndarray) -> str:
+        """Extract the stroke/border color from a container.
+        
+        Strategy: Compare the median color of the outer edge ring (3px band 
+        just inside the bbox boundary) with the interior fill. If they differ
+        significantly, the outer ring IS the border color. Otherwise, the 
+        container has no visible border and we return the fill color (making
+        the stroke invisible in practice).
+        """
+        try:
+            from utils import rgb_to_hex
+            
+            bbox_x, bbox_y, bbox_w, bbox_h = cv2.boundingRect(contour)
+            
+            # Clamp to image bounds
+            h_img, w_img = image.shape[:2]
+            x1 = max(0, bbox_x)
+            y1 = max(0, bbox_y)
+            x2 = min(w_img, bbox_x + bbox_w)
+            y2 = min(h_img, bbox_y + bbox_h)
+            
+            if x2 - x1 < 10 or y2 - y1 < 10:
                 return '#000000'
             
-            from utils import rgb_to_hex
-            median_color = np.median(pixels, axis=0).astype(int)
-            return rgb_to_hex(tuple(median_color[::-1]))  # BGR to RGB
-        except:
+            region = image[y1:y2, x1:x2]
+            rh, rw = region.shape[:2]
+            
+            # Create edge mask (3px band along the boundary)
+            edge_width = 3
+            edge_mask = np.zeros((rh, rw), dtype=np.uint8)
+            edge_mask[:edge_width, :] = 255   # top
+            edge_mask[-edge_width:, :] = 255  # bottom
+            edge_mask[:, :edge_width] = 255   # left
+            edge_mask[:, -edge_width:] = 255  # right
+            
+            # Create interior mask (exclude outer 8px band)
+            interior_margin = max(8, min(rh, rw) // 8)
+            interior_mask = np.zeros((rh, rw), dtype=np.uint8)
+            if rh > 2 * interior_margin and rw > 2 * interior_margin:
+                interior_mask[interior_margin:-interior_margin, interior_margin:-interior_margin] = 255
+            else:
+                # Too small for interior, just return edge color
+                edge_pixels = region[edge_mask > 0]
+                if len(edge_pixels) > 0:
+                    median_edge = np.median(edge_pixels, axis=0).astype(int)
+                    return rgb_to_hex(tuple(median_edge[::-1]))
+                return '#000000'
+            
+            edge_pixels = region[edge_mask > 0]
+            interior_pixels = region[interior_mask > 0]
+            
+            if len(edge_pixels) == 0 or len(interior_pixels) == 0:
+                return '#000000'
+            
+            median_edge = np.median(edge_pixels, axis=0).astype(int)
+            median_interior = np.median(interior_pixels, axis=0).astype(int)
+            
+            # Check if there's a visible border (color difference > 25)
+            color_diff = np.sqrt(np.sum((median_edge.astype(float) - median_interior.astype(float)) ** 2))
+            
+            if color_diff > 25:
+                # There's a real border — return edge color
+                return rgb_to_hex(tuple(median_edge[::-1]))
+            else:
+                # No visible border — return fill color so stroke is invisible
+                return rgb_to_hex(tuple(median_interior[::-1]))
+                
+        except Exception:
             return '#000000'
 
 

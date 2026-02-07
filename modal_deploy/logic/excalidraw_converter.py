@@ -62,7 +62,6 @@ EXCALIDRAW_FONT_FAMILY = {
     # Display & Stylized
     "Abril Fatface": 46,
     "Lobster": 47,
-    "Bebas Neue": 48,
     "Anton": 49,
     "Righteous": 50,
     "Orbitron": 51,
@@ -300,6 +299,28 @@ class ExcalidrawConverter:
         else:
             x, y, w, h = 0, 0, 100, 100
         
+        # Get corner radius - use from data or default to 0
+        corner_radius = self._get_value(container, 'corner_radius', 0)
+        
+        # Determine stroke color and width
+        stroke_color = self._get_value(container, 'stroke_color', self._get_value(container, 'border_color', '#e9ecef'))
+        fill_color = self._get_value(container, 'fill_color', self._get_value(container, 'background_color', '#f8f9fa'))
+        
+        # If stroke color is very close to fill color, make stroke transparent
+        stroke_width = 1
+        try:
+            sc = stroke_color.lstrip('#')
+            fc = fill_color.lstrip('#')
+            sr, sg, sb = int(sc[0:2], 16), int(sc[2:4], 16), int(sc[4:6], 16)
+            fr, fg, fb = int(fc[0:2], 16), int(fc[2:4], 16), int(fc[4:6], 16)
+            color_diff = ((sr - fr) ** 2 + (sg - fg) ** 2 + (sb - fb) ** 2) ** 0.5
+            if color_diff < 30:
+                # Stroke is too similar to fill — make it transparent
+                stroke_color = "transparent"
+                stroke_width = 0
+        except Exception:
+            pass
+        
         element = {
             **self._create_base_element(),
             "id": str(uuid.uuid4()),
@@ -308,12 +329,12 @@ class ExcalidrawConverter:
             "y": float(y),
             "width": float(w),
             "height": float(h),
-            "strokeColor": self._get_value(container, 'stroke_color', self._get_value(container, 'border_color', '#e9ecef')),
-            "backgroundColor": self._get_value(container, 'fill_color', self._get_value(container, 'background_color', '#f8f9fa')),
+            "strokeColor": stroke_color,
+            "backgroundColor": fill_color,
             "fillStyle": "solid",
-            "strokeWidth": 1,
+            "strokeWidth": stroke_width,
             "index": self._get_index(),
-            "roundness": {"type": 3},  # Rounded corners
+            "roundness": {"type": 3, "value": corner_radius} if corner_radius > 0 else {"type": 3},
         }
         
         return element
@@ -441,17 +462,17 @@ class ExcalidrawConverter:
         color = self._get_value(text_data, 'color', '#1e1e1e')
         
         # Handle both flat and nested font properties
-        # JSON format has font as nested object: {"font": {"size": 16, "family": "helvetica", "classified_font": "Roboto"}}
-        # Python object format has flat: {"font_size": 16, "font_family": "helvetica", "classified_font": "Roboto"}
         font_data = self._get_value(text_data, 'font', {})
         if font_data and isinstance(font_data, dict):
             # Nested format (from JSON)
             original_font_size = font_data.get('size', 16)
             classified_font = font_data.get('classified_font', '')
+            font_weight = font_data.get('weight', 'normal')
         else:
             # Flat format (from Python objects)
             original_font_size = self._get_value(text_data, 'font_size', 16)
             classified_font = self._get_value(text_data, 'classified_font', '')
+            font_weight = self._get_value(text_data, 'font_weight', 'normal')
         
         # Map classified font → anchor font → Excalidraw numeric font family ID
         font_family = map_classified_font_to_excalidraw_id(classified_font)
@@ -612,17 +633,38 @@ class ExcalidrawConverter:
         if background_element and download_images:
             print(f"  Processing background image...")
             try:
+                # Ensure background element has a proper bbox from dimensions
+                if not self._get_value(background_element, 'bbox'):
+                    dims = self._get_value(background_element, 'dimensions', {})
+                    if dims:
+                        bg_w = dims.get('width', statistics.get('dimensions', (800, 600))[0])
+                        bg_h = dims.get('height', statistics.get('dimensions', (800, 600))[1])
+                    else:
+                        bg_w = statistics.get('dimensions', (800, 600))[0]
+                        bg_h = statistics.get('dimensions', (800, 600))[1]
+                    # Inject bbox into background element so _create_image_element uses it
+                    if isinstance(background_element, dict):
+                        background_element['bbox'] = {'x': 0, 'y': 0, 'width': bg_w, 'height': bg_h}
+                    
                 # Create the background image element
                 bg_img_element = self._create_image_element(background_element, files)
                 if bg_img_element:
                     elements.append(bg_img_element)
                     
-                    # Add a border rectangle around the background
+                    # Add a border rectangle around the background using same dims
                     bbox = self._get_value(background_element, 'bbox')
                     if hasattr(bbox, 'x'):
                         x, y, w, h = bbox.x, bbox.y, bbox.w, bbox.h
+                    elif isinstance(bbox, dict):
+                        x = bbox.get('x', 0)
+                        y = bbox.get('y', 0)
+                        w = bbox.get('width', bbox.get('w', 0))
+                        h = bbox.get('height', bbox.get('h', 0))
                     else:
-                        x, y, w, h = 0, 0, statistics.get('dimensions', (800, 600))[0], statistics.get('dimensions', (800, 600))[1]
+                        dims = statistics.get('dimensions', (800, 600))
+                        x, y = 0, 0
+                        w = dims[0] if isinstance(dims, (list, tuple)) else dims
+                        h = dims[1] if isinstance(dims, (list, tuple)) else dims
                     
                     border_element = {
                         **self._create_base_element(),

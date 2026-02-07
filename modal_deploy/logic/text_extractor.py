@@ -54,6 +54,8 @@ class TextElement:
     font_classification_confidence: float = 0.0
     # Line count
     num_lines: int = 1
+    # Style group harmonization
+    style_group_id: int = -1
     
 
 class TextExtractor:
@@ -94,6 +96,9 @@ class TextExtractor:
         else:
             text_elements = self._extract_with_tesseract(image)
         
+        # Merge horizontally adjacent text fragments on the same line
+        text_elements = self._merge_horizontal_fragments(text_elements)
+        
         # Enhance font identification
         text_elements = self._identify_fonts(image, text_elements)
         
@@ -102,6 +107,9 @@ class TextExtractor:
         
         # Normalize font sizes relative to image dimensions
         text_elements = self._normalize_font_sizes(text_elements)
+        
+        # Harmonize font styles within groups of visually-similar text
+        text_elements = self._harmonize_style_groups(text_elements)
         
         logger.info(f"Extracted {len(text_elements)} text elements")
         
@@ -172,6 +180,110 @@ class TextExtractor:
             text_elements.append(element)
         
         return text_elements
+    
+    def _merge_horizontal_fragments(self, text_elements: List[TextElement]) -> List[TextElement]:
+        """
+        Merge horizontally adjacent text fragments that appear on the same line.
+        
+        EasyOCR often splits a single line of text into multiple fragments:
+          e.g. "DESIGN & DEVELOPMENT" + "TESTING & VALIDATION" at the same Y
+          should remain separate if they are in separate visual blocks, but
+          should merge if they're close enough to be one continuous text line.
+        
+        Strategy:
+          1. Group elements by vertical overlap (same text line)
+          2. Within each row, sort by X position
+          3. Merge elements that are horizontally close (gap < 1.5x avg char width)
+        
+        Returns:
+            List of merged TextElement objects
+        """
+        if len(text_elements) <= 1:
+            return text_elements
+        
+        logger.info(f"Merging horizontal text fragments (input: {len(text_elements)} elements)...")
+        
+        # Sort by Y position, then X
+        sorted_elements = sorted(text_elements, key=lambda e: (e.bbox.y, e.bbox.x))
+        
+        # Group into rows by vertical overlap
+        rows = []
+        current_row = [sorted_elements[0]]
+        
+        for elem in sorted_elements[1:]:
+            # Check vertical overlap with current row
+            row_top = min(e.bbox.y for e in current_row)
+            row_bottom = max(e.bbox.y2 for e in current_row)
+            row_mid = (row_top + row_bottom) / 2
+            row_height = row_bottom - row_top
+            
+            elem_mid = elem.bbox.y + elem.bbox.h / 2
+            
+            # Elements are on the same row if their vertical centers are close
+            # (within 50% of the row height)
+            vertical_tolerance = max(row_height * 0.5, elem.bbox.h * 0.5)
+            
+            if abs(elem_mid - row_mid) <= vertical_tolerance:
+                current_row.append(elem)
+            else:
+                rows.append(current_row)
+                current_row = [elem]
+        
+        rows.append(current_row)
+        
+        # Within each row, merge close fragments
+        merged_elements = []
+        
+        for row in rows:
+            if len(row) == 1:
+                merged_elements.append(row[0])
+                continue
+            
+            # Sort row by X position
+            row = sorted(row, key=lambda e: e.bbox.x)
+            
+            # Calculate average character width for this row
+            total_chars = sum(len(e.text) for e in row)
+            total_width = sum(e.bbox.w for e in row)
+            avg_char_width = total_width / max(total_chars, 1)
+            
+            # Merge close elements
+            current = row[0]
+            for next_elem in row[1:]:
+                gap = next_elem.bbox.x - current.bbox.x2
+                
+                # Merge if gap is small (< 2x avg character width)
+                # This catches "DESIGN & DEVELOPMENT   TESTING & VALIDATION" as 2 separate items
+                # but merges "CAR" + " MANUFACTURING" into one
+                merge_threshold = avg_char_width * 2.0
+                
+                if gap <= merge_threshold:
+                    # Merge: combine text and expand bbox
+                    separator = ' ' if gap > avg_char_width * 0.3 else ''
+                    merged_text = current.text + separator + next_elem.text
+                    merged_bbox = BoundingBox(
+                        x=min(current.bbox.x, next_elem.bbox.x),
+                        y=min(current.bbox.y, next_elem.bbox.y),
+                        w=max(current.bbox.x2, next_elem.bbox.x2) - min(current.bbox.x, next_elem.bbox.x),
+                        h=max(current.bbox.y2, next_elem.bbox.y2) - min(current.bbox.y, next_elem.bbox.y),
+                        label='text',
+                        confidence=min(current.confidence, next_elem.confidence)
+                    )
+                    current = TextElement(
+                        text=merged_text,
+                        bbox=merged_bbox,
+                        confidence=min(current.confidence, next_elem.confidence)
+                    )
+                else:
+                    # Too far apart — finalize current, start new
+                    merged_elements.append(current)
+                    current = next_elem
+            
+            merged_elements.append(current)
+        
+        logger.info(f"Merged text fragments: {len(text_elements)} -> {len(merged_elements)} elements")
+        
+        return merged_elements
     
     def _preprocess_for_ocr(self, gray: np.ndarray) -> np.ndarray:
         """Preprocess image for better OCR results"""
@@ -400,6 +512,304 @@ class TextExtractor:
         
         return text_elements
     
+    # Fonts that only render uppercase glyphs.  If the OCR text contains
+    # any lowercase letters, these fonts must NOT be assigned — they would
+    # silently convert the text to all-caps in the output.
+    # Maintained as a class-level set so it's easy to extend.
+    CAPS_ONLY_FONTS = frozenset({
+        # Display / titling fonts that lack lowercase glyphs
+        'Bebas Neue',
+        'Montserrat Subrayada',
+        'Alfa Slab One',
+        'Bowlby One',
+        'Bowlby One SC',
+        'Black Ops One',
+        'Bungee Shade',
+        'Bungee Spice',
+        'Bungee Tint',
+        'Monoton',
+        'Koulen',
+        'Stint Ultra Condensed',
+        'Passion One',
+        'Squada One',
+        'Freshman',
+        'Big Shoulders Stencil',
+        'Big Shoulders Inline',
+        'Alumni Sans Collegiate One',
+        'Alumni Sans Inline One',
+        'Alumni Sans Pinstripe',
+    })
+    
+    # The fallback font used when a caps-only font is rejected or when
+    # no valid classification exists for a group.
+    DEFAULT_FALLBACK_FONT = 'Open Sans'
+    
+    @staticmethod
+    def _text_has_lowercase(text: str) -> bool:
+        """Return True if *text* contains at least one lowercase letter."""
+        return any(c.islower() for c in text)
+    
+    @classmethod
+    def _is_caps_only_font(cls, font_name: str) -> bool:
+        """Check whether *font_name* is known to lack lowercase glyphs."""
+        return font_name in cls.CAPS_ONLY_FONTS
+    
+    @classmethod
+    def _is_valid_classified_font(cls, font_name: str) -> bool:
+        """
+        Return True if *font_name* is a real, usable classification result.
+        
+        Filters out:
+          - empty / None values
+          - the literal string 'NONE' produced by the TSV mapping for fonts
+            that have no Google Fonts equivalent (Arial, BIZ UD*, etc.)
+        """
+        return bool(font_name) and font_name.upper() != 'NONE'
+    
+    def _harmonize_style_groups(self, text_elements: List[TextElement]) -> List[TextElement]:
+        """
+        Harmonize font classification across groups of visually-similar text.
+        
+        Text at the same visual hierarchy level should share the same font family.
+        Individual font classification on small crops is noisy, so we group
+        elements by the two most reliable signals and apply weighted majority-vote.
+        
+        Grouping strategy — proximity-based clustering:
+          1. Partition elements by normalized font size (already clustered).
+          2. Within each font-size partition, cluster elements whose vertical
+             centres (Y midpoints) are within a configurable tolerance of each
+             other.  Unlike a rigid grid, this avoids splitting rows that
+             straddle a band boundary.
+             
+        Color and font_weight are intentionally NOT part of the group key because:
+          - Color extraction from small crops is noisy (background bleed, 
+            anti-aliasing, colored backgrounds).
+          - Font weight detection (dark pixel ratio) is unreliable and splits
+            groups that should be unified.
+        
+        Within each group we run a weighted majority vote: sum each font's
+        classification confidence across all members.  The font with the
+        highest total score wins and is applied to every member.
+        
+        Additional safeguards:
+          - 'NONE' classifications (unmapped fonts in the TSV) are treated as
+            unclassified and excluded from the vote.
+          - Caps-only fonts are rejected when the group contains mixed-case
+            text; the next-best candidate is used, or a safe fallback.
+        
+        Args:
+            text_elements: Text elements with individually-classified fonts
+            
+        Returns:
+            Text elements with harmonized font families within style groups
+        """
+        if not text_elements:
+            return text_elements
+        
+        if not self.config.get('harmonize_font_styles', True):
+            logger.info("Font style harmonization disabled in config")
+            return text_elements
+        
+        logger.info("Harmonizing font styles across visual groups...")
+        
+        # --- Step 1: Build style groups by (font_size, y_cluster) ---
+        # y_band_pct controls the max vertical distance (as fraction of image
+        # height) for two elements to be considered "same row".
+        y_band_pct = self.config.get('style_y_band_pct', 0.10)
+        image_height = self.image_height or 1
+        y_tolerance = max(1, int(image_height * y_band_pct))
+        
+        # Partition by font_size first
+        size_partitions: Dict[int, List[int]] = {}
+        for idx, elem in enumerate(text_elements):
+            fs = elem.font_size
+            if fs not in size_partitions:
+                size_partitions[fs] = []
+            size_partitions[fs].append(idx)
+        
+        # Within each font-size partition, cluster by Y-proximity
+        groups: List[List[int]] = []
+        
+        for font_size, indices in size_partitions.items():
+            # Sort by vertical centre
+            indices_sorted = sorted(indices, key=lambda i: text_elements[i].bbox.y + text_elements[i].bbox.h // 2)
+            
+            # Greedy merge: walk sorted list, start a new cluster whenever
+            # the gap to the *cluster average* exceeds y_tolerance
+            current_cluster: List[int] = [indices_sorted[0]]
+            current_y_sum = text_elements[indices_sorted[0]].bbox.y + text_elements[indices_sorted[0]].bbox.h // 2
+            
+            for i in range(1, len(indices_sorted)):
+                idx = indices_sorted[i]
+                y_center = text_elements[idx].bbox.y + text_elements[idx].bbox.h // 2
+                cluster_avg_y = current_y_sum / len(current_cluster)
+                
+                if abs(y_center - cluster_avg_y) <= y_tolerance:
+                    current_cluster.append(idx)
+                    current_y_sum += y_center
+                else:
+                    groups.append(current_cluster)
+                    current_cluster = [idx]
+                    current_y_sum = y_center
+            
+            groups.append(current_cluster)
+        
+        logger.info(f"Identified {len(groups)} style groups from {len(text_elements)} elements "
+                    f"(y_tolerance={y_tolerance}px, {y_band_pct*100:.0f}% of image height)")
+        
+        # --- Step 2: Harmonize font family within each group ---
+        harmonized_count = 0
+        fallback_font = self.config.get('fallback_font', self.DEFAULT_FALLBACK_FONT)
+        
+        for group_id, member_indices in enumerate(groups):
+            # Assign group ID for traceability
+            for idx in member_indices:
+                text_elements[idx].style_group_id = group_id
+            
+            # Filter to members with a *valid* classification
+            # (excludes empty strings AND the literal 'NONE')
+            classified_members = [
+                idx for idx in member_indices
+                if self._is_valid_classified_font(text_elements[idx].classified_font)
+            ]
+            
+            if len(classified_members) < 2:
+                # If 0 or 1 valid classifications, check if the single one is
+                # usable; if not, assign fallback to the whole group.
+                if len(classified_members) == 1:
+                    # Single classified member — just keep it, but check caps safety
+                    single = text_elements[classified_members[0]]
+                    group_has_lowercase = any(
+                        self._text_has_lowercase(text_elements[i].text)
+                        for i in member_indices
+                    )
+                    if group_has_lowercase and self._is_caps_only_font(single.classified_font):
+                        logger.info(
+                            f"  Group {group_id}: sole classification '{single.classified_font}' "
+                            f"is caps-only but group has lowercase text → fallback to '{fallback_font}'"
+                        )
+                        for idx in member_indices:
+                            elem = text_elements[idx]
+                            elem.classified_font = fallback_font
+                            elem.font_family = fallback_font
+                            elem.classified_font_version = ''
+                            harmonized_count += 1
+                elif len(classified_members) == 0 and len(member_indices) > 0:
+                    # No valid classifications at all (all NONE or empty)
+                    # Assign a safe fallback so we don't output "NONE"
+                    logger.info(
+                        f"  Group {group_id}: no valid classifications "
+                        f"({len(member_indices)} members) → fallback to '{fallback_font}'"
+                    )
+                    for idx in member_indices:
+                        elem = text_elements[idx]
+                        elem.classified_font = fallback_font
+                        elem.font_family = fallback_font
+                        elem.classified_font_version = ''
+                        harmonized_count += 1
+                continue
+            
+            # Weighted majority vote: sum confidence per font name
+            font_votes: Dict[str, float] = {}     # font_name -> total confidence
+            font_versions: Dict[str, str] = {}     # font_name -> version (from best conf)
+            font_best_conf: Dict[str, float] = {}  # font_name -> best single confidence
+            
+            for idx in classified_members:
+                elem = text_elements[idx]
+                font = elem.classified_font
+                conf = elem.font_classification_confidence
+                
+                font_votes[font] = font_votes.get(font, 0.0) + conf
+                
+                if font not in font_best_conf or conf > font_best_conf[font]:
+                    font_best_conf[font] = conf
+                    font_versions[font] = elem.classified_font_version
+            
+            # --- Caps-only font guard ---
+            # Check if any member text contains lowercase characters
+            group_has_lowercase = any(
+                self._text_has_lowercase(text_elements[i].text)
+                for i in member_indices
+            )
+            
+            # Sort candidates by total weighted vote (descending)
+            sorted_candidates = sorted(font_votes.items(), key=lambda x: -x[1])
+            
+            # Pick the best candidate that is safe for this group
+            winning_font = None
+            winning_version = ''
+            winning_total_conf = 0.0
+            
+            for candidate_font, candidate_conf in sorted_candidates:
+                if group_has_lowercase and self._is_caps_only_font(candidate_font):
+                    logger.info(
+                        f"  Group {group_id}: skipping caps-only font '{candidate_font}' "
+                        f"(score={candidate_conf:.3f}) — group has lowercase text"
+                    )
+                    continue
+                winning_font = candidate_font
+                winning_version = font_versions.get(candidate_font, '')
+                winning_total_conf = candidate_conf
+                break
+            
+            # If all candidates were caps-only, fall back to safe default
+            if winning_font is None:
+                winning_font = fallback_font
+                winning_version = ''
+                winning_total_conf = 0.0
+                logger.info(
+                    f"  Group {group_id}: all candidates are caps-only → "
+                    f"fallback to '{fallback_font}'"
+                )
+            
+            # Log the vote breakdown
+            font_size = text_elements[member_indices[0]].font_size
+            y_centers = [text_elements[i].bbox.y + text_elements[i].bbox.h // 2 for i in member_indices]
+            avg_y = int(np.mean(y_centers))
+            member_texts = [text_elements[i].text[:20] for i in member_indices]
+            logger.info(
+                f"  Group {group_id} (size={font_size}pt, avg_y={avg_y}, "
+                f"members={len(member_indices)}): "
+                f"votes={dict(sorted(font_votes.items(), key=lambda x: -x[1]))}"
+            )
+            logger.info(f"    Winner: '{winning_font}' (weighted score: {winning_total_conf:.3f})")
+            logger.info(f"    Members: {member_texts}")
+            
+            # Apply winning font to ALL members (including unclassified ones)
+            for idx in member_indices:
+                elem = text_elements[idx]
+                old_font = elem.classified_font or elem.font_family
+                
+                if old_font != winning_font:
+                    harmonized_count += 1
+                    logger.debug(
+                        f"    Harmonized '{elem.text[:25]}': "
+                        f"'{old_font}' -> '{winning_font}'"
+                    )
+                
+                elem.classified_font = winning_font
+                elem.classified_font_version = winning_version
+                elem.font_family = winning_font
+                
+                if elem.font_classification_confidence == 0.0:
+                    # Unclassified element — give it the group's average confidence
+                    avg_conf = winning_total_conf / max(len(classified_members), 1)
+                    elem.font_classification_confidence = avg_conf
+        
+        logger.info(
+            f"Font harmonization complete: {harmonized_count} elements updated "
+            f"across {len(groups)} groups"
+        )
+        
+        # Log final font distribution
+        font_dist: Dict[str, int] = {}
+        for elem in text_elements:
+            font = elem.classified_font or elem.font_family
+            font_dist[font] = font_dist.get(font, 0) + 1
+        logger.info(f"Final font distribution: {dict(sorted(font_dist.items(), key=lambda x: -x[1]))}")
+        
+        return text_elements
+    
     def _detect_font_weight(self, text_region: np.ndarray) -> str:
         """Detect if text is bold based on pixel density"""
         if text_region.size == 0:
@@ -456,9 +866,9 @@ class TextExtractor:
         """Save visualization of detected text with font information"""
         debug_img = image.copy()
         
-        print("\n" + "="*100)
-        print(f"{'Text Content':<40} {'Font':<20} {'Size':<6} {'Lines':<6} {'Confidence':<10}")
-        print("="*100)
+        print("\n" + "="*120)
+        print(f"{'Text Content':<40} {'Font':<20} {'Size':<6} {'Lines':<6} {'Group':<6} {'Confidence':<10}")
+        print("="*120)
         
         for element in text_elements:
             bbox = element.bbox
@@ -466,9 +876,10 @@ class TextExtractor:
             # Draw bounding box
             cv2.rectangle(debug_img, (bbox.x, bbox.y), (bbox.x2, bbox.y2), (0, 255, 0), 2)
             
-            # Prepare label with font info
+            # Prepare label with font info and group
             font_info = element.classified_font if element.classified_font else element.font_family
-            label = f"{element.text[:15]}... | {font_info} {element.font_size}pt"
+            group_label = f"G{element.style_group_id}" if element.style_group_id >= 0 else ""
+            label = f"{element.text[:15]}.. | {font_info} {element.font_size}pt {group_label}"
             
             # Add label
             cv2.putText(debug_img, label, (bbox.x, bbox.y - 5),
@@ -478,9 +889,10 @@ class TextExtractor:
             text_preview = element.text.replace('\n', ' ')[:40]
             font_display = f"{element.classified_font} {element.classified_font_version}".strip() if element.classified_font else element.font_family
             confidence_display = f"{element.font_classification_confidence:.3f}" if element.classified_font else f"{element.confidence:.3f}"
+            group_display = str(element.style_group_id) if element.style_group_id >= 0 else "-"
             
-            print(f"{text_preview:<40} {font_display:<20} {element.font_size:<6} {element.num_lines:<6} {confidence_display:<10}")
+            print(f"{text_preview:<40} {font_display:<20} {element.font_size:<6} {element.num_lines:<6} {group_display:<6} {confidence_display:<10}")
         
-        print("="*100 + "\n")
+        print("="*120 + "\n")
         
         save_debug_image(debug_img, '01_text_detection.png', DEBUG.get('output_dir', './debug_output'))

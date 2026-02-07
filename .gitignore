@@ -70,8 +70,11 @@ yarn-error.log*
 
 # Build outputs
 *.woff2
+*.ttf
+*.woff
 google_fonts/
 google_fonts_woff2/
+.font_cache/
 
 # Temporary files
 *.tmp

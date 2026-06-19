@@ -1,0 +1,258 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1771065049568,
+  "projectRoot": "/Users/stav.42/neolith/layout-labs-landing",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dev_destructure": {
+      "path": "dev_destructure",
+      "purpose": null,
+      "fileCount": 58,
+      "lastAccessed": 1771065049527,
+      "keyFiles": [
+        "API_REFERENCE.md",
+        "ARCHITECTURE.md",
+        "CLI_S3_INTEGRATION.md",
+        "CLI_S3_USAGE.md",
+        "DEBUG_ANNOTATIONS_GUIDE.md"
+      ]
+    },
+    "font_coalesce": {
+      "path": "font_coalesce",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1771065049530,
+      "keyFiles": [
+        "anchors.py",
+        "convert_to_woff2.py",
+        "final_font_mapping.csv",
+        "font_comparison_interactive.html",
+        "font_download.py"
+      ]
+    },
+    "modal_deploy": {
+      "path": "modal_deploy",
+      "purpose": null,
+      "fileCount": 26,
+      "lastAccessed": 1771065049531,
+      "keyFiles": [
+        "B1nhTG9S0vHHZMWc",
+        "EXCALIDRAW_FLOW_DIAGRAM.md",
+        "EXTRACTION_DATA_STRUCTURE.md",
+        "IMPLEMENTATION_SUMMARY.md",
+        "QUICKSTART.md"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "dev_destructure",
+      "accessCount": 12,
+      "lastAccessed": 1771066535662,
+      "type": "directory"
+    },
+    {
+      "path": "dev_destructure/config.py",
+      "accessCount": 8,
+      "lastAccessed": 1771066864624,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/raster_to_svg.py",
+      "accessCount": 7,
+      "lastAccessed": 1771065725365,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/image_detector.py",
+      "accessCount": 7,
+      "lastAccessed": 1771066445690,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 5,
+      "lastAccessed": 1771065714656,
+      "type": "directory"
+    },
+    {
+      "path": "dev_destructure/svg_generator.py",
+      "accessCount": 5,
+      "lastAccessed": 1771066452612,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/text_extractor.py",
+      "accessCount": 4,
+      "lastAccessed": 1771066454417,
+      "type": "file"
+    },
+    {
+      "path": "modal_deploy/logic/config.py",
+      "accessCount": 4,
+      "lastAccessed": 1771066910766,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/utils.py",
+      "accessCount": 3,
+      "lastAccessed": 1771065702076,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/shape_detector.py",
+      "accessCount": 3,
+      "lastAccessed": 1771065703556,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/logo_detector.py",
+      "accessCount": 3,
+      "lastAccessed": 1771065703973,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/test_converter.py",
+      "accessCount": 3,
+      "lastAccessed": 1771065734493,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 2,
+      "lastAccessed": 1771065208451,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/background_filler.py",
+      "accessCount": 2,
+      "lastAccessed": 1771065440471,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/container_detector.py",
+      "accessCount": 2,
+      "lastAccessed": 1771065441969,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/cli.py",
+      "accessCount": 2,
+      "lastAccessed": 1771065442537,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/gemini_code.py",
+      "accessCount": 2,
+      "lastAccessed": 1771065700117,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/font_classifier.py",
+      "accessCount": 2,
+      "lastAccessed": 1771065701446,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/advanced_utils.py",
+      "accessCount": 2,
+      "lastAccessed": 1771065704572,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/excalidraw_converter.py",
+      "accessCount": 2,
+      "lastAccessed": 1771066533914,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/README.md",
+      "accessCount": 1,
+      "lastAccessed": 1771065107655,
+      "type": "file"
+    },
+    {
+      "path": "modal_deploy/README.md",
+      "accessCount": 1,
+      "lastAccessed": 1771065108255,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/ARCHITECTURE.md",
+      "accessCount": 1,
+      "lastAccessed": 1771065108885,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/requirements.txt",
+      "accessCount": 1,
+      "lastAccessed": 1771065109260,
+      "type": "file"
+    },
+    {
+      "path": "modal_deploy/main.py",
+      "accessCount": 1,
+      "lastAccessed": 1771065114095,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/ml_pipeline/data_structures.py",
+      "accessCount": 1,
+      "lastAccessed": 1771065323210,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/example_usage.py",
+      "accessCount": 1,
+      "lastAccessed": 1771065425066,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/setup.py",
+      "accessCount": 1,
+      "lastAccessed": 1771065426290,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/ml_pipeline/pipeline.py",
+      "accessCount": 1,
+      "lastAccessed": 1771065729746,
+      "type": "file"
+    },
+    {
+      "path": "dev_destructure/ml_pipeline/segmentation.py",
+      "accessCount": 1,
+      "lastAccessed": 1771065730504,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

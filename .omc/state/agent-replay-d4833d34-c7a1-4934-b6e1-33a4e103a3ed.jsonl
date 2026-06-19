@@ -1,0 +1,12 @@
+{"t":0,"agent":"a18b09a","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"system","event":"keyword_detected","keyword":"pipeline"}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"oh-my-claudecode:pipeline"}
+{"t":0,"agent":"a542045","agent_type":"explore","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a542045","agent_type":"explore","event":"agent_stop","success":true,"duration_ms":87424}
+{"t":0,"agent":"af0b7df","agent_type":"architect","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"af0b7df","agent_type":"architect","event":"agent_stop","success":true,"duration_ms":253524}
+{"t":0,"agent":"a4bdcaf","agent_type":"critic","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a4bdcaf","agent_type":"critic","event":"agent_stop","success":true,"duration_ms":148436}
+{"t":0,"agent":"a04cf5d","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"aa26ea3","agent_type":"debugger","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"aa26ea3","agent_type":"debugger","event":"agent_stop","success":true,"duration_ms":401927}
